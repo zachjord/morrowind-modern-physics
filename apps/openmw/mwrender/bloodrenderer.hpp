@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 
+#include <osg/Array>
 #include <osg/Vec3f>
 #include <osg/ref_ptr>
 
@@ -11,8 +12,6 @@ namespace osg
 {
     class Group;
     class Geometry;
-    class Vec3Array;
-    class Vec4Array;
     class DrawArrays;
 }
 
