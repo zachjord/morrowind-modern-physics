@@ -33,8 +33,10 @@ on an up-to-date system (`-Syu`: the image is built from Arch's current packages
 
 ```sh
 sudo pacman -Syu --needed openscenegraph mygui recastnavigation sdl2-compat openal ffmpeg boost-libs luajit \
-    yaml-cpp sqlite icu lz4 unshield qt6-base qt6-svg
+    yaml-cpp sqlite icu lz4 unshield qt6-base qt6-svg collada-dom
 ```
+
+(`collada-dom`: OpenSceneGraph's COLLADA plugin needs it, and OpenMW won't start unless all the plugins it uses load.)
 
 `ldd out/openmw-latest/openmw | grep "not found"` lists anything still missing. After a system update, rebuild
 (`docker compose build --no-cache`, then the build again) if the game stops starting.
