@@ -4040,7 +4040,9 @@ namespace MWWorld
 
             // Hits on the world (what stays put); actors and loose things too once the blood is clear of where it
             // came from, which then loses it (a mark in the world wouldn't follow them).
-            const MWPhysics::BloodRayCast castRay = [this](const osg::Vec3f& from, const osg::Vec3f& to,
+            // And what lands under water is lost in it.
+            const MWWorld::CellStore* cell = player.isInCell() ? player.getCell() : nullptr;
+            const MWPhysics::BloodRayCast castRay = [this, cell](const osg::Vec3f& from, const osg::Vec3f& to,
                                                         bool young) -> std::optional<MWPhysics::BloodHit> {
                 int mask = MWPhysics::CollisionType_DynamicSupport;
                 if (!young)
@@ -4050,7 +4052,8 @@ namespace MWWorld
                     return std::nullopt;
                 const MWWorld::Ptr& object = result.mHitObject;
                 const bool moving
-                    = !object.isEmpty() && (object.getClass().isActor() || mPhysics->canHoldObject(object));
+                    = (!object.isEmpty() && (object.getClass().isActor() || mPhysics->canHoldObject(object)))
+                    || isUnderwater(cell, result.mHitPos);
                 return MWPhysics::BloodHit{ result.mHitPos, result.mHitNormal, moving };
             };
             mBloodSim->step(duration, castRay);

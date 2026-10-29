@@ -14,7 +14,8 @@
 namespace MWPhysics
 {
     /// What a ray (from, to) hit first: where, the surface's normal (towards from), and whether that is something
-    /// that moves (an actor, a body, a loose item), which a stain in world space couldn't follow.
+    /// that moves (an actor, a body, a loose item), which a stain in world space couldn't follow, or is under water:
+    /// either way the blood is lost there.
     struct BloodHit
     {
         osg::Vec3f mPosition;

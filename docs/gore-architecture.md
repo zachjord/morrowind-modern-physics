@@ -121,13 +121,14 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
   they change.
 - **Rendering** (untested): droplets as short streaks with the unlit "debug" shader; marks as soft, ragged
   vertex-coloured discs with the "objects" shader (lit), alpha-blended, depth write off, polygon offset.
-- **Not yet:** water (blood under water still lands on the bottom), stains on moving bodies, shallow-water flow
+- **Water:** what lands under the water level of the player's cell is lost (no clouds in the water yet).
+- **Not yet:** stains on moving bodies, shallow-water flow
   around obstacles (marks just grow), drying, a wound cap, saving. Fragments are simulated lumps, not rigid bodies.
 
 ## 5. Next steps (Stage 3)
 
 1. Stains on bodies and items in their own space, so a body that is moved carries them.
-2. Water: blood that enters water spreads as a cloud instead.
+2. Water: blood that enters water spreads as a cloud (now it is just lost).
 5. Saving marks (capped per cell).
 6. Local shallow-water grids for pools (section 6), replacing "merge into a bigger disc".
 
