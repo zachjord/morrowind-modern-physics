@@ -28,6 +28,17 @@ The first run builds the image (a few minutes) and compiles everything (the slow
 `openmw-wizard`, `openmw-iniimporter`, `resources/`, and the default config. Run `./openmw-launcher` from there the
 first time to point it at your Morrowind data (or reuse an existing `~/.config/openmw`).
 
+The programs use your system's libraries (the same packages the image was built with), so install them once,
+on an up-to-date system (`-Syu`: the image is built from Arch's current packages, so yours must match):
+
+```sh
+sudo pacman -Syu --needed openscenegraph mygui recastnavigation sdl2-compat openal ffmpeg boost-libs luajit \
+    yaml-cpp sqlite icu lz4 unshield qt6-base qt6-svg
+```
+
+`ldd out/openmw-latest/openmw | grep "not found"` lists anything still missing. After a system update, rebuild
+(`docker compose build --no-cache`, then the build again) if the game stops starting.
+
 Unit-test logs and JUnit XML go to `out/tests-<revision>/`. If any test fails, the command exits with status 2
 after copying the build, so you can still play it.
 
