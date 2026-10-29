@@ -468,6 +468,9 @@ namespace MWWorld
         /// @param cursor Y (relative 0-1)
         /// @param number of objects to place
 
+        MWWorld::Ptr spillItem(const MWWorld::Ptr& actor, const MWWorld::Ptr& item, const osg::Vec3f& position,
+            const osg::Vec3f& velocity) override;
+
         MWWorld::Ptr dropObjectOnGround(
             const MWWorld::Ptr& actor, const MWWorld::Ptr& object, int amount, bool copy = true) override;
         ///< copy and place an object into the gameworld at the given actor's position

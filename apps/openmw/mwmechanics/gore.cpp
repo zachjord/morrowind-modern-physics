@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <osg/Math>
 #include <osg/Matrixf>
 #include <osg/Vec3f>
 
@@ -26,6 +27,7 @@
 
 #include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
+#include "../mwworld/inventorystore.hpp"
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/worldmodel.hpp"
 
@@ -242,6 +244,17 @@ namespace MWMechanics
         const std::optional<osg::Vec3f> headCenter = getHeadCenter(*animation);
         if (!headCenter)
             return false; // Not built like a person: nothing would know what the head is.
+
+        // A helmet is thrown off, whole: it's the head inside that went.
+        MWWorld::InventoryStore& inventory = actor.getClass().getInventoryStore(actor);
+        const MWWorld::ContainerStoreIterator helmet = inventory.getSlot(MWWorld::InventoryStore::Slot_Helmet);
+        if (helmet != inventory.end())
+        {
+            Misc::Rng::Generator& prng = world.getPrng();
+            const float angle = Misc::Rng::rollProbability(prng) * 2.f * osg::PIf;
+            const osg::Vec3f velocity(std::cos(angle) * 70.f, std::sin(angle) * 70.f, 160.f);
+            world.spillItem(actor, *helmet, *headCenter, velocity);
+        }
 
         stats.setLostBodyParts(stats.getLostBodyParts() | CreatureStats::LostBodyPart_Head);
         animation->updateLostBodyParts();

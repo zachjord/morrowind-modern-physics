@@ -2420,6 +2420,22 @@ namespace MWWorld
             mPhysics->wakeNewObject(object);
     }
 
+    MWWorld::Ptr World::spillItem(
+        const MWWorld::Ptr& actor, const MWWorld::Ptr& item, const osg::Vec3f& position, const osg::Vec3f& velocity)
+    {
+        ESM::Position pos = actor.getRefData().getPosition();
+        pos.rot[0] = 0;
+        pos.rot[1] = 0;
+        pos.pos[0] = position.x();
+        pos.pos[1] = position.y();
+        pos.pos[2] = position.z();
+        // Where it is, not put down on the ground: it falls there.
+        const Ptr spilled = copyObjectToCell(item, actor.getCell(), pos, 1, false);
+        actor.getClass().getContainerStore(actor).remove(item, 1);
+        mPhysics->launchObject(spilled, velocity);
+        return spilled;
+    }
+
     MWWorld::Ptr World::dropObjectOnGround(const Ptr& actor, const Ptr& object, int amount, bool copy)
     {
         MWWorld::CellStore* cell = actor.getCell();

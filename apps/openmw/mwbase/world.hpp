@@ -383,6 +383,12 @@ namespace MWBase
         /// @param cursor Y (relative 0-1)
         /// @param number of objects to place
 
+        /// Takes one of item out of the actor's inventory and puts it in the world at position, moving at velocity
+        /// (falling and tumbling as loose items do). @return what was put there
+        virtual MWWorld::Ptr spillItem(
+            const MWWorld::Ptr& actor, const MWWorld::Ptr& item, const osg::Vec3f& position, const osg::Vec3f& velocity)
+            = 0;
+
         virtual MWWorld::Ptr dropObjectOnGround(
             const MWWorld::Ptr& actor, const MWWorld::Ptr& object, int amount, bool copy = true)
             = 0;

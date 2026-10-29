@@ -77,8 +77,9 @@ path is an empty `lostBones` list.
 
 ## 3. Known obstacles and limits
 
-- **Helmets/hoods** are hidden with the head but stay equipped and lootable. Eventually: drop them as a physical
-  item at the head's position.
+- **Helmets** are thrown off when the head bursts: taken out of the inventory and put in the world where the head
+  was, popping up and away, then falling and tumbling as the fork's loose items do (`World::spillItem`). Hoods
+  (robes) stay on the body, their hood part hidden with the head.
 - **Skinned heads or necks**: vanilla heads and hair are rigid parts on the head bone, as are most mod heads.
   Body replacers whose skinned body mesh has vertices weighted to `Bip01 Head` would leave those vertices. The
   general fix (and the basis for limbs) is per-bone triangle removal in `SceneUtil::RigGeometry`: drop triangles
