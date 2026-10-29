@@ -1,5 +1,6 @@
 #include "gore.hpp"
 
+#include <algorithm>
 #include <optional>
 #include <string>
 
@@ -46,8 +47,8 @@ namespace MWMechanics
             return head->getTrans() + up * 7.f;
         }
 
-        // Morrowind's own blood splashes, the kind the actor bleeds, several at once around where the head was.
-        // A stand-in: the blood is to be simulated (thrown, sticking, running).
+        // The blood and bits, simulated (see MWPhysics::BloodSim), with a fine mist of Morrowind's own blood splash
+        // (the kind the actor bleeds) where the head was.
         void spawnHeadBurst(const MWWorld::Ptr& actor, const osg::Vec3f& center)
         {
             MWBase::World& world = *MWBase::Environment::get().getWorld();
@@ -58,7 +59,16 @@ namespace MWMechanics
             if (texture.empty())
                 texture = Fallback::Map::getString("Blood_Texture_0");
 
-            constexpr int bursts = 5;
+            // Red blood only: the other kinds (bones' dust, sparks) aren't liquid.
+            const int droplets = Settings::modernPhysics().mGoreBloodDroplets;
+            if (bloodType == 0 && droplets > 0)
+            {
+                // About half a litre (a litre is ~343 cubic units), thrown at up to ~4 m/s: a burst from inside,
+                // not a blast.
+                world.spillBlood(center, osg::Vec3f(), droplets, std::max(droplets / 12, 4), 280.f, 170.f);
+            }
+
+            const int bursts = droplets > 0 && bloodType == 0 ? 2 : 5;
             for (int i = 0; i < bursts; ++i)
             {
                 const std::string_view model

@@ -79,6 +79,11 @@ namespace
         Interpreter::Interpreter mInterpreter;
     };
 
+    const std::string sExplodeHead = R"mwscript(Begin explode_head
+ExplodeHead
+explodehead
+End)mwscript";
+
     const std::string sScript1 = R"mwscript(Begin basic_logic
 ; Comment
 short one
@@ -1052,5 +1057,30 @@ End)mwscript";
     {
         registerExtensions();
         EXPECT_FALSE(!compile(sIssue8990));
+    }
+
+    TEST_F(MWScriptTest, mwscript_test_explode_head)
+    {
+        registerExtensions();
+        int calls = 0;
+        if (const auto script = compile(sExplodeHead))
+        {
+            class ExplodeHead : public Interpreter::Opcode0
+            {
+                int& mCalls;
+
+            public:
+                ExplodeHead(int& calls)
+                    : mCalls(calls)
+                {
+                }
+
+                void execute(Interpreter::Runtime&) override { ++mCalls; }
+            };
+            installOpcode<ExplodeHead>(Compiler::Stats::opcodeExplodeHead, calls);
+            TestInterpreterContext context;
+            run(*script, context);
+        }
+        EXPECT_EQ(calls, 2);
     }
 }

@@ -1,8 +1,8 @@
 # Gore, dismemberment and blood: architecture notes
 
-Status: Stage 1 (assessment) done, Stage 2 started: a head can be destroyed (console `ExplodeHead`) and the body
-drops into the existing ragdoll. Blood is Morrowind's own splash effect for now. Nothing here has been tested in
-game yet; see "Testing" at the end.
+Status: Stage 1 (assessment) done. Stage 2: a head can be destroyed (console `ExplodeHead`), the body drops into
+the existing ragdoll, and the blood and bits are simulated (thrown, colliding, running down walls, pooling).
+Nothing here has been tested in game yet, and the blood simulation hasn't even been compiled; see "Testing".
 
 ## 1. The existing ragdoll, as it bears on head destruction
 
@@ -86,16 +86,44 @@ path is an empty `lostBones` list.
   through the normal damage path so murder, bounty and AI reactions work.
 - **Corpse still playing its death animation** (ragdoll failed): its head goes, its pose stays.
 
-## 4. Next steps (Stage 2 → 3)
+## 4. The blood simulation (first layer)
 
-1. Physical head fragments: a small pool of short-lived Bullet bodies (spheres/convex chunks) owned by a
-   `GoreSystem` in mwphysics, rendered as instanced chunk meshes, never saved, capped in number; same collision
-   group as ragdoll parts.
-2. Our own blood particle emitter (droplets with Bullet ray casts each step, batched) replacing the vanilla splash.
+`MWPhysics::BloodSim` (`mwphysics/bloodsim.{hpp,cpp}`) is the first, CPU layer of the plan in section 6. It is
+plain C++ with no Bullet or OSG scene dependency: collision comes in as a ray-cast function, so it is unit tested
+against a fake world (`apps/openmw_tests/mwphysics/testbloodsim.cpp`). `World` owns it, steps it every unpaused
+frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to draw.
+
+- **Drops and chunks** fly under gravity with air drag; each step casts one ray along the step, so nothing tunnels.
+  Chunks (lumps) bounce up to twice, leaving a smear each time.
+- **Hits:** static world (statics, terrain, doors, furniture detail) keeps the blood. Actors, ragdolls and loose
+  items "lose" it, since a mark in world space couldn't follow them. Blood younger than 0.1 s ignores those, so it
+  doesn't hit the body it came out of.
+- **Marks** are thin films (≈1 mm): radius from volume. A new mark landing on one already there merges (volume
+  adds, centre moves). That is how pools form on floors.
+- **Runs:** a mark on a wall holds about 6 ml; more than that runs down the wall (a `BloodRunner`), leaving a
+  trail of marks and losing volume, until it dries out, reaches the floor (pools at the foot), or the wall ends (it
+  drips off as a drop again).
+- **Volume is conserved** except what hits moving things. The tests check that.
+- **Not saved**, cleared when the player changes worldspace or loads. Capped: `gore blood droplets` per burst
+  (default 160, 0 to 600) and `gore blood stains` (default 800).
+- **Cost:** one ray per live droplet per 1/60 s step, on the main thread (≈160 rays a frame for about a second after
+  a burst), and two per running trickle. Marks cost geometry only (12 segments, 36 triangles each), rebuilt when
+  they change.
+- **Rendering** (untested): droplets as short streaks with the unlit "debug" shader; marks as soft, ragged
+  vertex-coloured discs with the "objects" shader (lit), alpha-blended, depth write off, polygon offset.
+- **Not yet:** water (blood under water still lands on the bottom), stains on moving bodies, shallow-water flow
+  around obstacles (marks just grow), drying, a wound cap, saving. Fragments are simulated lumps, not rigid bodies.
+
+## 5. Next steps (Stage 3)
+
+1. Stains on bodies and items in their own space, so a body that is moved carries them.
+2. Water: blood that enters water spreads as a cloud instead.
 3. Wound cap at `Bip01 Neck`.
 4. A magic effect ("Burst Head" or on-target damage with a gore flag) castable as a spell.
+5. Saving marks (capped per cell).
+6. Local shallow-water grids for pools (section 6), replacing "merge into a bigger disc".
 
-## 5. Blood simulation: options and recommendation
+## 6. Blood simulation: options and recommendation
 
 The target is blood that sprays, sticks, runs and pools, in a forward OSG renderer with Bullet collision, at
 Morrowind's scale (~70 units per metre), with only a few events on screen at a time.
@@ -127,17 +155,26 @@ under the scheduler lock), and a render-side manager that owns the decal and gri
 
 ## Testing
 
-What has been checked so far: each changed source file compiles on its own without warnings (GCC 13, Ubuntu
-24.04, system OSG/Bullet). The full engine has **not** been linked, and the unit tests (ESM save/load round trip
-of the new subrecord, in `apps/components_tests/esm3/testsaveload.cpp`) have **not** been run. Nothing has been run
-in game. To check locally, build `openmw` and `components-tests`, run
-`components-tests --gtest_filter='*LostBodyParts*'`, then:
+What has been checked so far: for the head explosion (first commits), each changed source file compiled on its own
+without warnings (GCC 13, Ubuntu 24.04). The blood simulation, the renderer and the ragdoll layout refactor have
+**not been compiled at all**. No unit tests have been run, nothing has been linked, nothing has been run in game.
 
-1. Open the console, click an NPC, type `ExplodeHead`. Expect: head, hair and any helmet vanish, blood splashes
-   at the head, a crunch, and the body drops limp straight down (no push), settling without jitter.
+Unit tests to run after building (`openmw` and both test targets, `-DBUILD_OPENMW_TESTS=ON -DBUILD_COMPONENTS_TESTS=ON`):
+
+    openmw-tests --gtest_filter='MWPhysicsBloodSimTest.*:MWPhysicsRagdollTest.*:*explode_head*'
+    components-tests --gtest_filter='*LostBodyParts*'
+
+In game:
+
+1. Open the console, click an NPC, type `ExplodeHead`. Expect: head, hair and any helmet vanish, a crunch, a mist
+   of blood, droplets and bits flying out and landing on the floor and nearby walls, and the body dropping limp
+   straight down (no push), settling without jitter. Next to a wall: marks that run down it and pool at its foot.
+   Check the marks in a dark interior and outdoors at night (lighting is the least certain part).
 2. Repeat on several NPCs, including one already lying dead (it should lose its head where it lies) and one
    being dragged (it should drop and be grabbable again).
 3. Save, reload: headless bodies stay headless and lie where they were.
 4. Change cells and come back; open the body's inventory and loot the helmet.
 5. `Resurrect` a headless NPC: the head is back.
 6. Run it 50+ times in one place (e.g. a scripted loop) and watch `openmw.log` and memory for leaks or crashes.
+7. Leave the worldspace (go through a door) and come back: the blood is gone (expected for now).
+8. Frame rate with `gore blood droplets = 600` and several bursts at once.

@@ -23,7 +23,7 @@ add_openmw_dir (mwrender
     bulletdebugdraw globalmap characterpreview camera localmap water terrainstorage ripplesimulation
     renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging groundcover
     postprocessor pingpongcull luminancecalculator pingpongcanvas transparentpass opaqueblit waterawaretransparentbin precipitationocclusion ripples
-    actorutil distortion animationpriority bonegroup blendmask animblendcontroller
+    actorutil distortion animationpriority bonegroup blendmask animblendcontroller bloodrenderer
     )
 
 add_openmw_dir (mwinput
@@ -89,7 +89,7 @@ add_openmw_dir (mwworld
 add_openmw_dir (mwphysics
     physicssystem trace collisiontype actor convert object heightfield closestnotmerayresultcallback
     contacttestresultcallback stepper movementsolver projectile
-    actorconvexcallback raycasting mtphysics contacttestwrapper projectileconvexcallback ragdoll
+    actorconvexcallback raycasting mtphysics contacttestwrapper projectileconvexcallback ragdoll bloodsim
     )
 
 add_openmw_dir (mwclass

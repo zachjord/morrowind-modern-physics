@@ -162,6 +162,25 @@ namespace MWPhysics
         }
     }
 
+    std::vector<Ragdoll::HumanoidPart> Ragdoll::getHumanoidParts(const std::vector<std::string>& missingBones)
+    {
+        std::vector<HumanoidPart> parts;
+        // Which part each of sPartDefs is, -1 for one the body has lost (or that hung off one it lost).
+        std::array<int, std::size(sPartDefs)> partOfDef;
+        partOfDef.fill(-1);
+        for (size_t i = 0; i < std::size(sPartDefs); ++i)
+        {
+            const PartDef& def = sPartDefs[i];
+            if (def.mParent >= 0
+                && (partOfDef[def.mParent] < 0
+                    || std::find(missingBones.begin(), missingBones.end(), def.mBone) != missingBones.end()))
+                continue;
+            partOfDef[i] = static_cast<int>(parts.size());
+            parts.push_back({ std::string(def.mBone), def.mParent >= 0 ? partOfDef[def.mParent] : -1, i });
+        }
+        return parts;
+    }
+
     const std::vector<std::string>& Ragdoll::getRequiredBones()
     {
         static const std::vector<std::string> bones = { "Bip01 Pelvis", "Bip01 Spine1", "Bip01 Neck", "Bip01 Head",
@@ -177,17 +196,16 @@ namespace MWPhysics
     {
         const auto position = [&](std::string_view bone) { return bones.find(bone)->second.getTrans(); };
 
-        // Which part each of sPartDefs is, -1 for one the body has lost (or that hung off one it lost).
-        std::array<int, std::size(sPartDefs)> partOfDef;
-        partOfDef.fill(-1);
+        const std::vector<HumanoidPart> layout = getHumanoidParts(missingBones);
+        std::vector<int> partOfDef(std::size(sPartDefs), -1);
+        for (const HumanoidPart& made : layout)
+            partOfDef[made.mDef] = static_cast<int>(&made - layout.data());
+
         for (size_t i = 0; i < std::size(sPartDefs); ++i)
         {
             const PartDef& def = sPartDefs[i];
-            if (def.mParent >= 0
-                && (partOfDef[def.mParent] < 0
-                    || std::find(missingBones.begin(), missingBones.end(), def.mBone) != missingBones.end()))
+            if (partOfDef[i] < 0)
                 continue;
-            partOfDef[i] = static_cast<int>(mParts.size());
 
             auto part = std::make_shared<Part>(actor);
             part->mBone = def.mBone;

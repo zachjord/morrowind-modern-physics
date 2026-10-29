@@ -571,6 +571,12 @@ namespace MWBase
         /// Spawn a random creature from a levelled list next to the player
         virtual void spawnRandomCreature(const ESM::RefId& creatureList) = 0;
 
+        /// Gore: throws blood from center (on top of velocity) into the blood simulation: drops droplets and
+        /// chunks lumps, up to maxSpeed, volume (cubic units) in the droplets altogether. See MWPhysics::BloodSim.
+        virtual void spillBlood(
+            const osg::Vec3f& center, const osg::Vec3f& velocity, int drops, int chunks, float maxSpeed, float volume)
+            = 0;
+
         virtual void spawnEffect(VFS::Path::NormalizedView model, const std::string& textureOverride,
             const osg::Vec3f& worldPos, float scale = 1.f, bool isMagicVFX = true, bool useAmbientLight = true,
             std::string_view effectId = {}, bool loop = false)

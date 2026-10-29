@@ -76,6 +76,7 @@ namespace ToUTF8
 namespace MWPhysics
 {
     class Object;
+    class BloodSim;
 }
 
 namespace MWWorld
@@ -112,6 +113,8 @@ namespace MWWorld
         std::unique_ptr<MWWorld::WeatherManager> mWeatherManager;
         std::unique_ptr<MWWorld::DateTimeManager> mTimeManager;
         std::unique_ptr<ProjectileManager> mProjectileManager;
+        std::unique_ptr<MWPhysics::BloodSim> mBloodSim; // gore
+        ESM::RefId mBloodWorldspace; // where the blood is (it goes when the player leaves)
 
         bool mSky;
         bool mGodMode;
@@ -152,6 +155,7 @@ namespace MWWorld
         World& operator=(const World&) = delete;
 
         void updateWeather(float duration, bool paused = false);
+        void updateBlood(float duration, bool paused);
 
         void initObjectInCell(const Ptr& ptr, CellStore& cell, bool adjustPos);
         Ptr moveObjectToCell(const Ptr& ptr, CellStore* cell, ESM::Position pos, bool adjustPos);
@@ -643,6 +647,9 @@ namespace MWWorld
 
         /// Spawn a random creature from a levelled list next to the player
         void spawnRandomCreature(const ESM::RefId& creatureList) override;
+
+        void spillBlood(const osg::Vec3f& center, const osg::Vec3f& velocity, int drops, int chunks, float maxSpeed,
+            float volume) override;
 
         void spawnEffect(VFS::Path::NormalizedView model, const std::string& textureOverride,
             const osg::Vec3f& worldPos, float scale = 1.f, bool isMagicVFX = true, bool useAmbientLight = true,

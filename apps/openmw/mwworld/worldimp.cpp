@@ -88,6 +88,7 @@
 #include "../mwclass/door.hpp"
 
 #include "../mwphysics/actor.hpp"
+#include "../mwphysics/bloodsim.hpp"
 #include "../mwphysics/collisiontype.hpp"
 #include "../mwphysics/object.hpp"
 #include "../mwphysics/physicssystem.hpp"
@@ -265,6 +266,7 @@ namespace MWWorld
             viewer, rootNode, mResourceSystem, workQueue, *mNavigator, mGroundcoverStore, unrefQueue);
         mProjectileManager = std::make_unique<ProjectileManager>(
             mRendering->getLightRoot()->asGroup(), mResourceSystem, mRendering.get(), mPhysics.get());
+        mBloodSim = std::make_unique<MWPhysics::BloodSim>();
         mRendering->preloadCommonAssets();
 
         mWeatherStore = std::make_unique<MWWorld::WeatherStore>();
@@ -373,6 +375,8 @@ namespace MWWorld
         mWeatherManager->clear();
         mRendering->clear();
         mProjectileManager->clear();
+        mBloodSim->clear();
+        mRendering->updateBlood(*mBloodSim);
         mLocalScripts.clear();
 
         mWorldScene->clear();
@@ -1953,6 +1957,8 @@ namespace MWWorld
         mWorldScene->update(duration);
 
         mRendering->update(duration, paused);
+
+        updateBlood(duration, paused);
 
         updateSoundListener();
 
@@ -3996,6 +4002,48 @@ namespace MWWorld
 
             safePlaceObject(ref.getPtr(), getPlayerPtr(), getPlayerPtr().getCell(), 0, 220.f);
         }
+    }
+
+    void World::spillBlood(
+        const osg::Vec3f& center, const osg::Vec3f& velocity, int drops, int chunks, float maxSpeed, float volume)
+    {
+        mBloodSim->burst(center, velocity, drops, chunks, maxSpeed, volume, mPrng);
+    }
+
+    void World::updateBlood(float duration, bool paused)
+    {
+        // Blood belongs where it was spilt: leaving the worldspace (or loading) takes it away.
+        const MWWorld::Ptr player = getPlayerPtr();
+        const ESM::RefId worldspace = player.isInCell() ? player.getCell()->getCell()->getWorldSpace() : ESM::RefId();
+        if (worldspace != mBloodWorldspace)
+        {
+            mBloodWorldspace = worldspace;
+            mBloodSim->clear();
+        }
+
+        MWPhysics::BloodSim::Settings& settings = mBloodSim->getSettings();
+        settings.mMaxStains = static_cast<std::size_t>(Settings::modernPhysics().mGoreBloodStains.get());
+
+        if (!paused)
+        {
+            // Hits on the world (what stays put); actors and loose things too once the blood is clear of where it
+            // came from, which then loses it (a mark in the world wouldn't follow them).
+            const MWPhysics::BloodRayCast castRay = [this](const osg::Vec3f& from, const osg::Vec3f& to,
+                                                        bool young) -> std::optional<MWPhysics::BloodHit> {
+                int mask = MWPhysics::CollisionType_DynamicSupport;
+                if (!young)
+                    mask |= MWPhysics::CollisionType_Actor | MWPhysics::CollisionType_Dynamic;
+                const MWPhysics::RayCastingResult result = mPhysics->castRay(from, to, mask);
+                if (!result.mHit)
+                    return std::nullopt;
+                const MWWorld::Ptr& object = result.mHitObject;
+                const bool moving
+                    = !object.isEmpty() && (object.getClass().isActor() || mPhysics->canHoldObject(object));
+                return MWPhysics::BloodHit{ result.mHitPos, result.mHitNormal, moving };
+            };
+            mBloodSim->step(duration, castRay);
+        }
+        mRendering->updateBlood(*mBloodSim);
     }
 
     void World::spawnEffect(VFS::Path::NormalizedView model, const std::string& textureOverride,

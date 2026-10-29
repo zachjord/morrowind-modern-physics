@@ -87,11 +87,17 @@ namespace Debug
     struct DebugDrawer;
 }
 
+namespace MWPhysics
+{
+    class BloodSim;
+}
+
 namespace MWRender
 {
     class IntersectionVisitorWithIgnoreList;
 
     class EffectManager;
+    class BloodRenderer;
     class ScreenshotManager;
     class FogManager;
     class SkyManager;
@@ -218,6 +224,9 @@ namespace MWRender
 
         /// Clear all worldspace-specific data
         void notifyWorldSpaceChanged();
+
+        /// Draws spilt blood as it is now (gore; see MWPhysics::BloodSim).
+        void updateBlood(const MWPhysics::BloodSim& sim);
 
         void update(float dt, bool paused);
 
@@ -349,6 +358,7 @@ namespace MWRender
         std::unique_ptr<FogManager> mFog;
         std::unique_ptr<ScreenshotManager> mScreenshotManager;
         std::unique_ptr<EffectManager> mEffectManager;
+        std::unique_ptr<BloodRenderer> mBloodRenderer;
         std::unique_ptr<SceneUtil::ShadowManager> mShadowManager;
         osg::ref_ptr<PostProcessor> mPostProcessor;
         osg::ref_ptr<NpcAnimation> mPlayerAnimation;

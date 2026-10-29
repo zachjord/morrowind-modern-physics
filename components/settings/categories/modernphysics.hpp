@@ -1,6 +1,7 @@
 #ifndef OPENMW_COMPONENTS_SETTINGS_CATEGORIES_MODERNPHYSICS_H
 #define OPENMW_COMPONENTS_SETTINGS_CATEGORIES_MODERNPHYSICS_H
 
+#include <components/settings/sanitizerimpl.hpp>
 #include <components/settings/settingvalue.hpp>
 
 namespace Settings
@@ -21,6 +22,12 @@ namespace Settings
         SettingValue<bool> mImpactSoundDebug{ mIndex, "Modern Physics", "impact sound debug" };
         // Body parts destroyed for good (see apps/openmw/mwmechanics/gore.hpp).
         SettingValue<bool> mGore{ mIndex, "Modern Physics", "gore" };
+        // How many droplets a burst throws (0: none simulated, only Morrowind's splash effect).
+        SettingValue<int> mGoreBloodDroplets{ mIndex, "Modern Physics", "gore blood droplets",
+            makeClampSanitizerInt(0, 600) };
+        // How many blood marks are kept around, the oldest going first.
+        SettingValue<int> mGoreBloodStains{ mIndex, "Modern Physics", "gore blood stains",
+            makeClampSanitizerInt(0, 4000) };
     };
 }
 

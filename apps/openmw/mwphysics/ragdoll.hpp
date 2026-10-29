@@ -1,6 +1,7 @@
 #ifndef OPENMW_MWPHYSICS_RAGDOLL_H
 #define OPENMW_MWPHYSICS_RAGDOLL_H
 
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <memory>
@@ -36,6 +37,18 @@ namespace MWPhysics
 
         /// The bones this needs, in hierarchy order (parents first). Their world matrices are the starting pose.
         static const std::vector<std::string>& getRequiredBones();
+
+        /// A part of the humanoid body: its bone, the part it is joined to (an index into the same list, -1 for the
+        /// main part) and which of the built-in part definitions it is.
+        struct HumanoidPart
+        {
+            std::string mBone;
+            int mParent;
+            std::size_t mDef;
+        };
+        /// The humanoid body's parts, in the order they are made (parents first), without missingBones (see the
+        /// constructor).
+        static std::vector<HumanoidPart> getHumanoidParts(const std::vector<std::string>& missingBones);
 
         /// @param bones world matrices of getRequiredBones()
         /// @param velocity of the actor as it died

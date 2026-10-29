@@ -70,6 +70,7 @@
 #include "../mwbase/world.hpp"
 
 #include "actorspaths.hpp"
+#include "bloodrenderer.hpp"
 #include "camera.hpp"
 #include "effectmanager.hpp"
 #include "fogmanager.hpp"
@@ -306,6 +307,7 @@ namespace MWRender
         mResourceSystem->getSceneManager()->setIncrementalCompileOperation(mViewer->getIncrementalCompileOperation());
 
         mEffectManager = std::make_unique<EffectManager>(sceneRoot, mResourceSystem);
+        mBloodRenderer = std::make_unique<BloodRenderer>(sceneRoot, mResourceSystem);
 
         const std::string& normalMapPattern = Settings::shaders().mNormalMapPattern;
         const std::string& heightMapPattern = Settings::shaders().mNormalHeightMapPattern;
@@ -1133,6 +1135,11 @@ namespace MWRender
     void RenderingManager::removeEffect(std::string_view effectId)
     {
         mEffectManager->removeEffect(effectId);
+    }
+
+    void RenderingManager::updateBlood(const MWPhysics::BloodSim& sim)
+    {
+        mBloodRenderer->update(sim);
     }
 
     void RenderingManager::notifyWorldSpaceChanged()
