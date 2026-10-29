@@ -61,7 +61,9 @@ namespace
             const Ragdoll::HumanoidPart& before = whole[indexOf(whole, part.mBone)];
             EXPECT_EQ(part.mDef, before.mDef);
             if (before.mParent >= 0)
+            {
                 EXPECT_EQ(parts[part.mParent].mBone, whole[before.mParent].mBone) << part.mBone;
+            }
         }
     }
 
