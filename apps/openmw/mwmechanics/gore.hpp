@@ -37,6 +37,12 @@ namespace MWMechanics
 
     /// Teaches the player the Burst Head spell, if gore is on and "gore spell" too.
     void teachGoreSpells(const MWWorld::Ptr& player);
+
+    /// Wounds go on bleeding for a while after the blow: spurts from the neck, weaker and slower as the heart
+    /// stops. duration: seconds of game time since the last call (not called while paused).
+    void updateBleeding(float duration);
+    /// Stops all bleeding (a new game, a load).
+    void clearBleeding();
 }
 
 #endif

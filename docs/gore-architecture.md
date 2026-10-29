@@ -110,6 +110,9 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
 - **Runs:** a mark on a wall holds about 6 ml; more than that runs down the wall (a `BloodRunner`), leaving a
   trail of marks and losing volume, until it dries out, reaches the floor (pools at the foot), or the wall ends (it
   drips off as a drop again).
+- **Bleeding:** after the burst, the neck goes on spurting along its own axis in pulses (about 75 a minute,
+  slowing), each weaker than the last, for 9 s (`MWMechanics::updateBleeding`). Wounds are tracked by RefNum, so
+  a body that is unloaded just stops. Not saved.
 - **Volume is conserved** except what hits moving things. The tests check that.
 - **Not saved**, cleared when the player changes worldspace or loads. Capped: `gore blood droplets` per burst
   (default 160, 0 to 600) and `gore blood stains` (default 800).

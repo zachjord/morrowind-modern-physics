@@ -1,8 +1,10 @@
 #include "gore.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <osg/Matrixf>
 #include <osg/Vec3f>
@@ -25,6 +27,7 @@
 #include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/ptr.hpp"
+#include "../mwworld/worldmodel.hpp"
 
 #include "actorutil.hpp"
 #include "creaturestats.hpp"
@@ -49,6 +52,53 @@ namespace MWMechanics
             }
             // About half the head's height (see the head part in ragdoll.cpp).
             return head->getTrans() + up * 7.f;
+        }
+
+        // A neck still pumping blood after the head is gone. Kept by reference number, so a body that is unloaded
+        // (or deleted) simply stops.
+        struct Wound
+        {
+            ESM::RefNum mActor;
+            float mAge = 0;
+            float mNextPulse = 0.15f; // the first a moment after the burst
+        };
+
+        constexpr float sBleedTime = 9.f;
+
+        std::vector<Wound>& getWounds()
+        {
+            static std::vector<Wound> wounds;
+            return wounds;
+        }
+
+        // From the top of the neck, along it, out of the body.
+        bool getNeckOpening(const MWRender::Animation& animation, osg::Vec3f& position, osg::Vec3f& direction)
+        {
+            const std::optional<osg::Matrixf> head = animation.getBoneWorldMatrix("Bip01 Head");
+            const std::optional<osg::Matrixf> neck = animation.getBoneWorldMatrix("Bip01 Neck");
+            if (!head || !neck)
+                return false;
+            position = head->getTrans();
+            direction = head->getTrans() - neck->getTrans();
+            if (direction.normalize() < 1e-3f)
+                direction = osg::Vec3f(0, 0, 1);
+            return true;
+        }
+
+        void pulse(const MWWorld::Ptr& actor, const Wound& wound)
+        {
+            MWBase::World& world = *MWBase::Environment::get().getWorld();
+            const MWRender::Animation* animation = world.getAnimation(actor);
+            osg::Vec3f position;
+            osg::Vec3f direction;
+            if (animation == nullptr || !getNeckOpening(*animation, position, direction))
+                return;
+            // The heart giving out: each spurt weaker than the last.
+            const float strength = std::exp(-wound.mAge / 2.5f);
+            const int droplets = Settings::modernPhysics().mGoreBloodDroplets;
+            const int drops = std::max(1, static_cast<int>(static_cast<float>(droplets) * 0.05f * (0.3f + strength)));
+            world.spillBlood(position + direction * 1.5f, direction * (40.f + 160.f * strength), drops, 0,
+                15.f + 25.f * strength, 0.5f + 5.f * strength);
         }
 
         // The blood and bits, simulated (see MWPhysics::BloodSim), with a fine mist of Morrowind's own blood splash
@@ -136,6 +186,37 @@ namespace MWMechanics
         store.insertStatic(spell);
     }
 
+    void updateBleeding(float duration)
+    {
+        std::vector<Wound>& wounds = getWounds();
+        MWWorld::WorldModel& worldModel = *MWBase::Environment::get().getWorldModel();
+        for (auto it = wounds.begin(); it != wounds.end();)
+        {
+            Wound& wound = *it;
+            wound.mAge += duration;
+            const MWWorld::Ptr actor = worldModel.getPtr(wound.mActor);
+            if (wound.mAge > sBleedTime || actor.isEmpty() || !actor.getRefData().isEnabled()
+                || !actor.getClass().getCreatureStats(actor).hasLostBodyPart(CreatureStats::LostBodyPart_Head))
+            {
+                it = wounds.erase(it);
+                continue;
+            }
+            wound.mNextPulse -= duration;
+            if (wound.mNextPulse <= 0)
+            {
+                pulse(actor, wound);
+                // About 75 beats a minute, slowing.
+                wound.mNextPulse += 0.8f + 0.5f * wound.mAge / sBleedTime;
+            }
+            ++it;
+        }
+    }
+
+    void clearBleeding()
+    {
+        getWounds().clear();
+    }
+
     void teachGoreSpells(const MWWorld::Ptr& player)
     {
         if (!goreEnabled() || !Settings::modernPhysics().mGoreSpell || player.isEmpty())
@@ -165,6 +246,8 @@ namespace MWMechanics
         stats.setLostBodyParts(stats.getLostBodyParts() | CreatureStats::LostBodyPart_Head);
         animation->updateLostBodyParts();
         spawnHeadBurst(actor, *headCenter);
+        if (actor.get<ESM::NPC>()->mBase->mBloodType == 0 && Settings::modernPhysics().mGoreBloodDroplets > 0)
+            getWounds().push_back(Wound{ actor.getCellRef().getRefNum() });
 
         if (!stats.isDead())
         {

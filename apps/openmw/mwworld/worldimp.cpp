@@ -379,6 +379,7 @@ namespace MWWorld
         mProjectileManager->clear();
         mBloodSim->clear();
         mRendering->updateBlood(*mBloodSim);
+        MWMechanics::clearBleeding();
         mGoreSpellsTaught = false;
         mLocalScripts.clear();
 
@@ -4035,6 +4036,8 @@ namespace MWWorld
 
         if (!paused)
         {
+            MWMechanics::updateBleeding(duration);
+
             // Hits on the world (what stays put); actors and loose things too once the blood is clear of where it
             // came from, which then loses it (a mark in the world wouldn't follow them).
             const MWPhysics::BloodRayCast castRay = [this](const osg::Vec3f& from, const osg::Vec3f& to,
