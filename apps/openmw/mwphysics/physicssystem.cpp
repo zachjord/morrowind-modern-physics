@@ -690,15 +690,16 @@ namespace MWPhysics
         mDynamicObjects.push_back(std::move(obj));
     }
 
-    bool PhysicsSystem::createRagdoll(
-        const MWWorld::Ptr& actor, const std::map<std::string, osg::Matrixf, std::less<>>& bones, const osg::Vec3f& kick)
+    bool PhysicsSystem::createRagdoll(const MWWorld::Ptr& actor,
+        const std::map<std::string, osg::Matrixf, std::less<>>& bones, const osg::Vec3f& kick,
+        const std::vector<std::string>& lostBones)
     {
         for (const std::string& bone : Ragdoll::getRequiredBones())
             if (bones.find(bone) == bones.end())
                 return false;
         // Falling as it was moving.
         const osg::Vec3f velocity = getDeathVelocity(actor);
-        addRagdoll(actor, std::make_unique<Ragdoll>(actor, bones, velocity, kick, mTaskScheduler.get()));
+        addRagdoll(actor, std::make_unique<Ragdoll>(actor, bones, velocity, kick, mTaskScheduler.get(), lostBones));
         return true;
     }
 

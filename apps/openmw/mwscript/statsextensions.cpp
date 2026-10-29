@@ -10,6 +10,7 @@
 #include <components/compiler/opcodes.hpp>
 #include <components/debug/debuglog.hpp>
 #include <components/esm3/loadfact.hpp>
+#include <components/interpreter/context.hpp>
 #include <components/interpreter/interpreter.hpp>
 #include <components/interpreter/opcodes.hpp>
 #include <components/interpreter/runtime.hpp>
@@ -27,6 +28,7 @@
 
 #include "../mwmechanics/actorutil.hpp"
 #include "../mwmechanics/creaturestats.hpp"
+#include "../mwmechanics/gore.hpp"
 #include "../mwmechanics/npcstats.hpp"
 
 #include "ref.hpp"
@@ -1198,6 +1200,21 @@ namespace MWScript
             }
         };
 
+        // Fork: gore (see mwmechanics/gore.hpp), for testing until a spell does it.
+        template <class R>
+        class OpExplodeHead : public Interpreter::Opcode0
+        {
+        public:
+            void execute(Interpreter::Runtime& runtime) override
+            {
+                MWWorld::Ptr ptr = R()(runtime);
+                if (!MWMechanics::explodeHead(ptr))
+                    runtime.getContext().report(MWMechanics::goreEnabled()
+                            ? "ExplodeHead: needs a person in view (not the player) whose head is still there"
+                            : "ExplodeHead: gore is off ([Modern Physics] gore in settings.cfg)");
+            }
+        };
+
         template <class R>
         class OpResurrect : public Interpreter::Opcode0
         {
@@ -1501,6 +1518,8 @@ namespace MWScript
                 Compiler::Stats::opcodeRemoveSpellEffectsExplicit);
             interpreter.installSegment5<OpResurrect<ImplicitRef>>(Compiler::Stats::opcodeResurrect);
             interpreter.installSegment5<OpResurrect<ExplicitRef>>(Compiler::Stats::opcodeResurrectExplicit);
+            interpreter.installSegment5<OpExplodeHead<ImplicitRef>>(Compiler::Stats::opcodeExplodeHead);
+            interpreter.installSegment5<OpExplodeHead<ExplicitRef>>(Compiler::Stats::opcodeExplodeHeadExplicit);
             interpreter.installSegment5<OpRemoveEffects<ImplicitRef>>(Compiler::Stats::opcodeRemoveEffects);
             interpreter.installSegment5<OpRemoveEffects<ExplicitRef>>(Compiler::Stats::opcodeRemoveEffectsExplicit);
 

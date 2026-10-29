@@ -1,6 +1,7 @@
 #include "ragdoll.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <mutex>
@@ -171,13 +172,23 @@ namespace MWPhysics
     }
 
     Ragdoll::Ragdoll(const MWWorld::Ptr& actor, const BoneMatrices& bones, const osg::Vec3f& velocity,
-        const osg::Vec3f& kick, PhysicsTaskScheduler* scheduler)
+        const osg::Vec3f& kick, PhysicsTaskScheduler* scheduler, const std::vector<std::string>& missingBones)
         : mTaskScheduler(scheduler)
     {
         const auto position = [&](std::string_view bone) { return bones.find(bone)->second.getTrans(); };
 
-        for (const PartDef& def : sPartDefs)
+        // Which part each of sPartDefs is, -1 for one the body has lost (or that hung off one it lost).
+        std::array<int, std::size(sPartDefs)> partOfDef;
+        partOfDef.fill(-1);
+        for (size_t i = 0; i < std::size(sPartDefs); ++i)
         {
+            const PartDef& def = sPartDefs[i];
+            if (def.mParent >= 0
+                && (partOfDef[def.mParent] < 0
+                    || std::find(missingBones.begin(), missingBones.end(), def.mBone) != missingBones.end()))
+                continue;
+            partOfDef[i] = static_cast<int>(mParts.size());
+
             auto part = std::make_shared<Part>(actor);
             part->mBone = def.mBone;
 
@@ -221,11 +232,12 @@ namespace MWPhysics
         addToWorld();
 
         // Joints where each part meets its parent, twisting around the part's own bone.
-        for (size_t i = 0; i < mParts.size(); ++i)
+        for (size_t i = 0; i < std::size(sPartDefs); ++i)
         {
             const PartDef& def = sPartDefs[i];
-            if (def.mParent >= 0)
-                addJoint(def.mParent, i, position(def.mBone), def.mSwing1, def.mSwing2, def.mTwist);
+            if (def.mParent >= 0 && partOfDef[i] >= 0)
+                addJoint(
+                    partOfDef[def.mParent], partOfDef[i], position(def.mBone), def.mSwing1, def.mSwing2, def.mTwist);
         }
         addJointFriction();
     }

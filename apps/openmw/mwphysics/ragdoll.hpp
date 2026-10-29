@@ -40,8 +40,11 @@ namespace MWPhysics
         /// @param bones world matrices of getRequiredBones()
         /// @param velocity of the actor as it died
         /// @param kick velocity change of the upper body from the blow that killed it
+        /// @param missingBones the parts the body has lost (a destroyed head, say): they, and any parts hanging off
+        /// them, aren't made, so the bones stay where the rest of the body takes them. The main part (the pelvis)
+        /// is always made.
         Ragdoll(const MWWorld::Ptr& actor, const BoneMatrices& bones, const osg::Vec3f& velocity,
-            const osg::Vec3f& kick, PhysicsTaskScheduler* scheduler);
+            const osg::Vec3f& kick, PhysicsTaskScheduler* scheduler, const std::vector<std::string>& missingBones = {});
         /// A body without the standard skeleton, as one box: bodyWorld/halfExtents place it, baseWorld is where the
         /// actor's model is, which then follows it (its pose is the only one, unnamed).
         Ragdoll(const MWWorld::Ptr& actor, const btTransform& bodyWorld, const osg::Vec3f& halfExtents, float mass,

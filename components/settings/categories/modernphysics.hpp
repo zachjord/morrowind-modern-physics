@@ -19,6 +19,8 @@ namespace Settings
         SettingValue<bool> mMeleeWorldImpactSounds{ mIndex, "Modern Physics", "melee world impact sounds" };
         SettingValue<bool> mExtendedWaterSplashes{ mIndex, "Modern Physics", "extended water splashes" };
         SettingValue<bool> mImpactSoundDebug{ mIndex, "Modern Physics", "impact sound debug" };
+        // Body parts destroyed for good (see apps/openmw/mwmechanics/gore.hpp).
+        SettingValue<bool> mGore{ mIndex, "Modern Physics", "gore" };
     };
 }
 

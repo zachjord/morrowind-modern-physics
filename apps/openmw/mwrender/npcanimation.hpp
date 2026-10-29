@@ -88,6 +88,8 @@ namespace MWRender
             std::string_view bonefilter, bool enchantedGlow, osg::Vec4f* glowColor, bool isLight);
 
         void removeIndividualPart(ESM::PartReferenceType type);
+        /// Whether the part goes where the NPC has lost its body (a destroyed head takes the hair and any helmet).
+        bool isOnLostBodyPart(ESM::PartReferenceType type) const;
         void reserveIndividualPart(ESM::PartReferenceType type, int group, int priority);
 
         bool addOrReplaceIndividualPart(ESM::PartReferenceType type, int group, int priority,
@@ -169,6 +171,8 @@ namespace MWRender
         const PartHolder* getPart(ESM::PartReferenceType type) const { return mObjectParts[type].get(); }
 
         void setVampire(bool vampire) override;
+
+        void updateLostBodyParts() override;
 
         /// Set a translation offset (in object root space) to apply to meshes when in first person mode.
         void setFirstPersonOffset(const osg::Vec3f& offset);

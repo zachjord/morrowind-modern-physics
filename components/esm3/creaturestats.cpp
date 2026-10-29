@@ -220,6 +220,8 @@ namespace ESM
             const RefId ammo = esm.getRefId();
             esm.getHNT(mEmbeddedAmmo[ammo], "EMBC");
         }
+        mLostBodyParts = 0;
+        esm.getHNOT(mLostBodyParts, "LOST");
     }
 
     void CreatureStats::save(ESMWriter& esm) const
@@ -346,6 +348,8 @@ namespace ESM
             esm.writeHNRefId("EMBA", ammo);
             esm.writeHNT("EMBC", count);
         }
+        if (mLostBodyParts != 0)
+            esm.writeHNT("LOST", mLostBodyParts);
     }
 
     void CreatureStats::blank()
@@ -374,6 +378,7 @@ namespace ESM
         mRagdoll.clear();
         mStuckProjectiles.clear();
         mEmbeddedAmmo.clear();
+        mLostBodyParts = 0;
         mDeathAnimation = -1;
         mLevel = 1;
         mCorprusSpells.clear();

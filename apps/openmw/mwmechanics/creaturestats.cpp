@@ -564,6 +564,7 @@ namespace MWMechanics
             std::copy(projectile.mOnBone.ptr(), projectile.mOnBone.ptr() + 16, saved.mTransform.begin());
         }
         state.mEmbeddedAmmo = { mEmbeddedAmmo.begin(), mEmbeddedAmmo.end() };
+        state.mLostBodyParts = mLostBodyParts;
         // state.mHitAttemptActorId = mHitAttemptActorId;
 
         mSpells.writeState(state.mSpells);
@@ -629,6 +630,7 @@ namespace MWMechanics
             mStuckProjectiles.push_back(
                 { projectile.mAmmo, projectile.mBone, osg::Matrixf(projectile.mTransform.data()) });
         mEmbeddedAmmo = { state.mEmbeddedAmmo.begin(), state.mEmbeddedAmmo.end() };
+        mLostBodyParts = state.mLostBodyParts;
         // mHitAttemptActor = state.mHitAttemptActor;
 
         mSpells.readState(state.mSpells, this);

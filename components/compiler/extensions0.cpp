@@ -455,6 +455,7 @@ namespace Compiler
                 "removespelleffects", "c", opcodeRemoveSpellEffects, opcodeRemoveSpellEffectsExplicit);
             extensions.registerInstruction("removeeffects", "l", opcodeRemoveEffects, opcodeRemoveEffectsExplicit);
             extensions.registerInstruction("resurrect", "", opcodeResurrect, opcodeResurrectExplicit);
+            extensions.registerInstruction("explodehead", "", opcodeExplodeHead, opcodeExplodeHeadExplicit);
             extensions.registerFunction("getspell", 'l', "c", opcodeGetSpell, opcodeGetSpellExplicit);
 
             extensions.registerInstruction("pcraiserank", "/S", opcodePCRaiseRank, opcodePCRaiseRankExplicit);

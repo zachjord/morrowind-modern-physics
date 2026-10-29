@@ -1,6 +1,7 @@
 #ifndef GAME_MWMECHANICS_CREATURESTATS_H
 #define GAME_MWMECHANICS_CREATURESTATS_H
 
+#include <cstdint>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -69,6 +70,7 @@ namespace MWMechanics
         std::vector<std::pair<std::string, osg::Matrixf>> mRagdollPose;
         std::vector<StuckProjectile> mStuckProjectiles;
         std::map<ESM::RefId, int> mEmbeddedAmmo;
+        std::uint32_t mLostBodyParts = 0; // LostBodyPart bits
         unsigned int mMovementFlags = 0;
 
         float mFallHeight = 0.f;
@@ -252,6 +254,15 @@ namespace MWMechanics
             mRagdollPose = std::move(pose);
         }
         const std::vector<std::pair<std::string, osg::Matrixf>>& getRagdollPose() const { return mRagdollPose; }
+
+        /// Parts of the body destroyed (gore; see gore.hpp). Saved; gone again when it is resurrected.
+        enum LostBodyPart : std::uint32_t
+        {
+            LostBodyPart_Head = 1 << 0,
+        };
+        bool hasLostBodyPart(LostBodyPart part) const { return (mLostBodyParts & part) != 0; }
+        std::uint32_t getLostBodyParts() const { return mLostBodyParts; }
+        void setLostBodyParts(std::uint32_t parts) { mLostBodyParts = parts; }
 
         /// Projectiles shown stuck in the body, oldest first (see stuckprojectiles.hpp).
         std::vector<StuckProjectile>& getStuckProjectiles() { return mStuckProjectiles; }

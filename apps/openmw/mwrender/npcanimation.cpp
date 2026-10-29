@@ -766,10 +766,29 @@ namespace MWRender
         return bodypart->mData.mFlags & ESM::BodyPart::BPF_Female;
     }
 
+    bool NpcAnimation::isOnLostBodyPart(ESM::PartReferenceType type) const
+    {
+        if (type != ESM::PRT_Head && type != ESM::PRT_Hair)
+            return false;
+        return mPtr.getClass().getCreatureStats(mPtr).hasLostBodyPart(MWMechanics::CreatureStats::LostBodyPart_Head);
+    }
+
+    void NpcAnimation::updateLostBodyParts()
+    {
+        for (const ESM::PartReferenceType type : { ESM::PRT_Head, ESM::PRT_Hair })
+            if (isOnLostBodyPart(type))
+                removeIndividualPart(type);
+        // Puts back whatever is no longer lost (and keeps what is off, see addOrReplaceIndividualPart).
+        updateParts();
+    }
+
     bool NpcAnimation::addOrReplaceIndividualPart(ESM::PartReferenceType type, int group, int priority,
         VFS::Path::NormalizedView mesh, bool enchantedGlow, osg::Vec4f* glowColor, bool isLight)
     {
         if (priority <= mPartPriorities[type])
+            return false;
+        // Nothing to put it on (a helmet on a destroyed head, say); the item itself stays equipped.
+        if (isOnLostBodyPart(type))
             return false;
 
         removeIndividualPart(type);

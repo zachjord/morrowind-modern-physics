@@ -534,6 +534,9 @@ namespace MWRender
         virtual void detachArrow() {}
         virtual void releaseArrow(float attackStrength, float attackWindUp) {}
         virtual void enableHeadAnimation(bool enable) {}
+        /// Hide the parts of the model the actor has lost (see CreatureStats::LostBodyPart), and show again any it
+        /// has back.
+        virtual void updateLostBodyParts() {}
         // TODO: move outside of this class
         /// Makes this object glow, by placing a Light in its center.
         /// @param effect Controls the radius and intensity of the light.

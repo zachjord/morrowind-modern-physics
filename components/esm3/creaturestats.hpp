@@ -109,6 +109,8 @@ namespace ESM
         std::vector<StuckProjectile> mStuckProjectiles;
         /// Projectiles stuck in a living actor, not yet in its inventory: they are added when it dies.
         std::map<RefId, int32_t> mEmbeddedAmmo;
+        /// Body parts destroyed (gore), as bits of MWMechanics::CreatureStats::LostBodyPart.
+        uint32_t mLostBodyParts;
 
         std::map<ESM::RefId, CorprusStats> mCorprusSpells;
         SpellState mSpells;

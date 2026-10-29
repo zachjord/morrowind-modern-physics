@@ -2864,7 +2864,15 @@ namespace MWMechanics
             MWBase::Environment::get().getWorld()->removeRagdoll(mPtr);
             mRagdoll = false;
         }
-        mPtr.getClass().getCreatureStats(mPtr).setRagdollPose({});
+        CreatureStats& stats = mPtr.getClass().getCreatureStats(mPtr);
+        stats.setRagdollPose({});
+        // Back to life whole.
+        if (stats.getLostBodyParts() != 0)
+        {
+            stats.setLostBodyParts(0);
+            if (mAnimation)
+                mAnimation->updateLostBodyParts();
+        }
 
         if (mDeathState == CharState_None)
             return;

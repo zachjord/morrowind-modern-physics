@@ -498,6 +498,8 @@ namespace Compiler
         const int opcodeGetPCVisionBonus = 0x2000322;
         const int opcodeSetPCVisionBonus = 0x2000323;
         const int opcodeModPCVisionBonus = 0x2000324;
+        const int opcodeExplodeHead = 0x2000327;
+        const int opcodeExplodeHeadExplicit = 0x2000328;
     }
 
     namespace Transformation

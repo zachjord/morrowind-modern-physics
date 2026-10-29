@@ -1475,7 +1475,14 @@ namespace MWWorld
                 bones.emplace(bone, *world);
             }
             if (bones.size() == MWPhysics::Ragdoll::getRequiredBones().size())
-                return mPhysics->createRagdoll(actor, bones, kick);
+            {
+                // A destroyed head (see MWMechanics::explodeHead) leaves nothing there to simulate.
+                std::vector<std::string> lostBones;
+                if (actor.getClass().getCreatureStats(actor).hasLostBodyPart(
+                        MWMechanics::CreatureStats::LostBodyPart_Head))
+                    lostBones.emplace_back("Bip01 Head");
+                return mPhysics->createRagdoll(actor, bones, kick, lostBones);
+            }
         }
 
         // Any other skinned body: parts fitted to the mesh.

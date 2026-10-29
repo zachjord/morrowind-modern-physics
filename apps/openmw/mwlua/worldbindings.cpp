@@ -27,6 +27,7 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
 #include "../mwmechanics/creaturestats.hpp"
+#include "../mwmechanics/gore.hpp"
 #include "../mwmechanics/stuckprojectiles.hpp"
 #include "../mwrender/animation.hpp"
 
@@ -334,6 +335,15 @@ namespace MWLua
             if (poses.empty())
                 return sol::nullopt;
             return osg::Vec3f(poses.front().second.getTrans());
+        };
+        // Gore: blowing a person's head apart (as the console's ExplodeHead), and whether it is gone.
+        api["_explodeHead"] = [context](const GObject& actor) {
+            context.mLuaManager->addAction([actor] { MWMechanics::explodeHead(actor.ptr()); }, "_explodeHead");
+        };
+        api["_hasLostHead"] = [](const GObject& actor) {
+            const MWWorld::Ptr ptr = actor.ptr();
+            return ptr.getClass().isActor()
+                && ptr.getClass().getCreatureStats(ptr).hasLostBodyPart(MWMechanics::CreatureStats::LostBodyPart_Head);
         };
         // Recoverable stuck projectiles: what a stored projectile hit does (without the hit and its chance), and how
         // many are shown in / embedded in an actor.

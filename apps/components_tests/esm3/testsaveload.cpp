@@ -405,6 +405,30 @@ namespace ESM
             EXPECT_EQ(record.mLastHitObject, result.mLastHitObject);
         }
 
+        TEST_P(Esm3SaveLoadRecordTest, creatureStatsLostBodyPartsShouldNotChange)
+        {
+            CreatureStats record;
+            record.blank();
+            record.mDead = true;
+            record.mLostBodyParts = 1;
+            record.mRagdoll.push_back({ "Bip01 Pelvis", { 1, 2, 3, 0, 0, 0, 1, 1 } });
+            CreatureStats result;
+            saveAndLoadRecord(record, GetParam(), result);
+            EXPECT_EQ(result.mLostBodyParts, 1u);
+            ASSERT_EQ(result.mRagdoll.size(), 1u);
+            EXPECT_EQ(result.mRagdoll.front().mName, "Bip01 Pelvis");
+        }
+
+        TEST_P(Esm3SaveLoadRecordTest, creatureStatsWithoutLostBodyPartsShouldLoadNone)
+        {
+            CreatureStats record;
+            record.blank();
+            CreatureStats result;
+            result.mLostBodyParts = 1;
+            saveAndLoadRecord(record, GetParam(), result);
+            EXPECT_EQ(result.mLostBodyParts, 0u);
+        }
+
         TEST_P(Esm3SaveLoadRecordTest, containerShouldNotChange)
         {
             Container record;
