@@ -6,6 +6,7 @@
 
 #include <osg/BlendFunc>
 #include <osg/ComputeBoundsVisitor>
+#include <osg/Geometry>
 #include <osg/Matrix>
 #include <osg/MatrixTransform>
 #include <osg/Switch>
@@ -67,6 +68,7 @@
 #include "../mwmechanics/weapontype.hpp"
 
 #include "actorutil.hpp"
+#include "bloodrenderer.hpp"
 #include "rotatecontroller.hpp"
 #include "util.hpp"
 #include "vismask.hpp"
@@ -1080,6 +1082,52 @@ namespace MWRender
         osg::NodePath& toParent = paths.front();
         toParent.pop_back();
         found->second->setMatrix(world * osg::Matrixf::inverse(osg::computeLocalToWorld(toParent)));
+    }
+
+    void Animation::addBloodMark(const osg::Vec3f& position, const osg::Vec3f& normal, float radius)
+    {
+        // The bone nearest to where it landed carries it.
+        osg::MatrixTransform* nearest = nullptr;
+        osg::Matrixf nearestWorld;
+        float nearestDistance = std::numeric_limits<float>::max();
+        for (const auto& [name, node] : getNodeMap())
+        {
+            const osg::NodePathList paths = node->getParentalNodePaths();
+            if (paths.empty())
+                continue;
+            const osg::Matrixf world = osg::computeLocalToWorld(paths.front());
+            const float distance = (world.getTrans() - position).length2();
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearest = node.get();
+                nearestWorld = world;
+            }
+        }
+        if (nearest == nullptr)
+            return;
+
+        // In the bone's own space, so it goes wherever the bone does.
+        const osg::Matrixf toBone = osg::Matrixf::inverse(nearestWorld);
+        const osg::Vec3f local = position * toBone;
+        osg::Vec3f localNormal = osg::Matrixf::transform3x3(normal, toBone);
+        if (localNormal.normalize() < 1e-6f)
+            return;
+        const float scale = std::max(static_cast<float>(nearestWorld.getScale().x()), 1e-3f);
+        osg::ref_ptr<osg::Node> mark = makeBloodMark(local, localNormal, radius / scale);
+        mResourceSystem->getSceneManager()->recreateShaders(mark);
+        nearest->addChild(mark);
+        mBloodMarks.push_back(mark);
+
+        constexpr std::size_t maxMarks = 40;
+        while (mBloodMarks.size() > maxMarks)
+        {
+            const osg::ref_ptr<osg::Node> oldest = mBloodMarks.front();
+            mBloodMarks.pop_front();
+            const osg::Node::ParentList parents = oldest->getParents(); // a copy: removing changes it
+            for (osg::Group* parent : parents)
+                parent->removeChild(oldest);
+        }
     }
 
     void Animation::stopAllAnimations()

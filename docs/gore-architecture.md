@@ -103,9 +103,12 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
 
 - **Drops and chunks** fly under gravity with air drag; each step casts one ray along the step, so nothing tunnels.
   Chunks (lumps) bounce up to twice, leaving a smear each time.
-- **Hits:** static world (statics, terrain, doors, furniture detail) keeps the blood. Actors, ragdolls and loose
-  items "lose" it, since a mark in world space couldn't follow them. Blood younger than 0.1 s ignores those, so it
-  doesn't hit the body it came out of.
+- **Hits:** static world (statics, terrain, doors, furniture detail) keeps the blood as world marks. On actors,
+  ragdolls and loose items it becomes a mark on the object itself: the simulation hands the hit back
+  (`BloodSim::takeLosses`) and `Animation::addBloodMark` puts a small disc on the bone nearest to it, in that
+  bone's space, so it moves, falls and is dragged with the body (up to 40 per actor, 24 new a frame; not saved,
+  gone when the model is remade). Blood younger than 0.1 s ignores moving things, so it doesn't hit the body it
+  came out of.
 - **Marks** are thin films (≈1 mm): radius from volume. A new mark landing on one already there merges (volume
   adds, centre moves). That is how pools form on floors.
 - **Runs:** a mark on a wall holds about 6 ml; more than that runs down the wall (a `BloodRunner`), leaving a
@@ -123,12 +126,11 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
 - **Rendering** (untested): droplets as short streaks with the unlit "debug" shader; marks as soft, ragged
   vertex-coloured discs with the "objects" shader (lit), alpha-blended, depth write off, polygon offset.
 - **Water:** what lands under the water level of the player's cell is lost (no clouds in the water yet).
-- **Not yet:** stains on moving bodies, shallow-water flow
+- **Not yet:** marks on bodies that bend with the skin (they are rigid on a bone), saving them, shallow-water flow
   around obstacles (marks just grow), drying, a wound cap, saving. Fragments are simulated lumps, not rigid bodies.
 
 ## 5. Next steps (Stage 3)
 
-1. Stains on bodies and items in their own space, so a body that is moved carries them.
 2. Water: blood that enters water spreads as a cloud (now it is just lost).
 5. Saving marks (capped per cell).
 6. Local shallow-water grids for pools (section 6), replacing "merge into a bigger disc".

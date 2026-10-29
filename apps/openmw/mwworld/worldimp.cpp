@@ -1,6 +1,8 @@
 #include "worldimp.hpp"
 
 #include <charconv>
+#include <cstdint>
+#include <unordered_map>
 #include <vector>
 
 #include <osg/ComputeBoundsVisitor>
@@ -4055,11 +4057,12 @@ namespace MWWorld
             MWMechanics::updateBleeding(duration);
 
             // Hits on the world (what stays put); actors and loose things too once the blood is clear of where it
-            // came from, which then loses it (a mark in the world wouldn't follow them).
-            // And what lands under water is lost in it.
+            // came from: the mark goes on them instead (below). What lands under water is lost in it.
             const MWWorld::CellStore* cell = player.isInCell() ? player.getCell() : nullptr;
-            const MWPhysics::BloodRayCast castRay = [this, cell](const osg::Vec3f& from, const osg::Vec3f& to,
-                                                        bool young) -> std::optional<MWPhysics::BloodHit> {
+            std::unordered_map<std::uintptr_t, MWWorld::Ptr> hitObjects;
+            const MWPhysics::BloodRayCast castRay
+                = [this, cell, &hitObjects](
+                      const osg::Vec3f& from, const osg::Vec3f& to, bool young) -> std::optional<MWPhysics::BloodHit> {
                 int mask = MWPhysics::CollisionType_DynamicSupport;
                 if (!young)
                     mask |= MWPhysics::CollisionType_Actor | MWPhysics::CollisionType_Dynamic;
@@ -4067,12 +4070,33 @@ namespace MWWorld
                 if (!result.mHit)
                     return std::nullopt;
                 const MWWorld::Ptr& object = result.mHitObject;
-                const bool moving
-                    = (!object.isEmpty() && (object.getClass().isActor() || mPhysics->canHoldObject(object)))
-                    || isUnderwater(cell, result.mHitPos);
-                return MWPhysics::BloodHit{ result.mHitPos, result.mHitNormal, moving };
+                const bool onMoving
+                    = !object.isEmpty() && (object.getClass().isActor() || mPhysics->canHoldObject(object));
+                const bool underwater = isUnderwater(cell, result.mHitPos);
+                std::uintptr_t id = 0;
+                if (onMoving && !underwater)
+                {
+                    id = reinterpret_cast<std::uintptr_t>(object.mRef);
+                    hitObjects.emplace(id, object);
+                }
+                return MWPhysics::BloodHit{ result.mHitPos, result.mHitNormal, onMoving || underwater, id };
             };
             mBloodSim->step(duration, castRay);
+
+            // Blood on people, bodies and loose things: marks on them, on the bone it landed nearest. A few a frame
+            // (each looks for its bone), the rest lost.
+            int budget = 24;
+            for (const MWPhysics::BloodLoss& loss : mBloodSim->takeLosses())
+            {
+                if (budget-- <= 0)
+                    break;
+                const auto found = hitObjects.find(loss.mObject);
+                if (found == hitObjects.end())
+                    continue;
+                if (MWRender::Animation* animation = mRendering->getAnimation(found->second))
+                    animation->addBloodMark(
+                        loss.mPosition, loss.mNormal, std::min(mBloodSim->stainRadius(loss.mVolume), 5.f));
+            }
         }
         mRendering->updateBlood(*mBloodSim);
     }

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 
+#include <osg/Vec3f>
 #include <osg/ref_ptr>
 
 namespace osg
@@ -27,6 +28,10 @@ namespace MWPhysics
 
 namespace MWRender
 {
+    /// One mark of blood, on its own: a soft-edged disc at center, facing along normal (for marks on moving things,
+    /// see Animation::addBloodMark). Shaders not yet made.
+    osg::ref_ptr<osg::Geometry> makeBloodMark(const osg::Vec3f& center, const osg::Vec3f& normal, float radius);
+
     /// Draws a BloodSim: droplets as short streaks along their flight, marks as soft-edged, slightly ragged discs
     /// on their surface. Plain geometry made each frame (droplets) or when the marks change; no textures.
     class BloodRenderer

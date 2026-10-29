@@ -2,9 +2,11 @@
 #define OPENMW_MWPHYSICS_BLOODSIM_H
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <osg/Vec3f>
@@ -21,6 +23,16 @@ namespace MWPhysics
         osg::Vec3f mPosition;
         osg::Vec3f mNormal;
         bool mMoving = false;
+        std::uintptr_t mObject = 0; // what moves there, for whoever made the ray (0 for none, or under water)
+    };
+
+    /// Blood that landed on something moving (BloodHit::mObject), for its owner to put on it.
+    struct BloodLoss
+    {
+        osg::Vec3f mPosition;
+        osg::Vec3f mNormal;
+        float mVolume = 0;
+        std::uintptr_t mObject = 0;
     };
 
     /// The first thing a ray hits, if anything. young: the ray is for blood just thrown, which is still inside the
@@ -108,6 +120,8 @@ namespace MWPhysics
         const std::vector<BloodDrop>& getDrops() const { return mDrops; }
         const std::vector<BloodRunner>& getRunners() const { return mRunners; }
         const std::deque<BloodStain>& getStains() const { return mStains; }
+        /// Blood that landed on moving things since the last call (at most a few hundred kept).
+        std::vector<BloodLoss> takeLosses() { return std::exchange(mLosses, {}); }
         /// Changes whenever the stains do (for whoever draws them).
         std::size_t getStainRevision() const { return mStainRevision; }
         const Settings& getSettings() const { return mSettings; }
@@ -129,6 +143,7 @@ namespace MWPhysics
         std::vector<BloodDrop> mDrops;
         std::vector<BloodRunner> mRunners;
         std::deque<BloodStain> mStains; // oldest first
+        std::vector<BloodLoss> mLosses;
         std::size_t mStainRevision = 0;
     };
 }

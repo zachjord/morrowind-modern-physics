@@ -189,6 +189,29 @@ namespace
         EXPECT_TRUE(sim.getStains().empty());
     }
 
+    TEST(MWPhysicsBloodSimTest, bloodOnSomethingMovingIsHandedToItsOwner)
+    {
+        BloodSim sim;
+        Misc::Rng::Generator prng(19);
+        sim.burst(osg::Vec3f(0, 0, 30), osg::Vec3f(), 10, 0, 50, 10, prng);
+        const BloodRayCast castRay = [](const osg::Vec3f&, const osg::Vec3f& to, bool) -> std::optional<BloodHit> {
+            if (to.z() > 0)
+                return std::nullopt;
+            return BloodHit{ osg::Vec3f(to.x(), to.y(), 0), osg::Vec3f(0, 0, 1), true, 42 };
+        };
+        for (int i = 0; i < 60 * 3; ++i)
+            sim.step(1.f / 60, castRay);
+        EXPECT_TRUE(sim.getStains().empty());
+        const std::vector<MWPhysics::BloodLoss> losses = sim.takeLosses();
+        EXPECT_EQ(losses.size(), 10u);
+        for (const MWPhysics::BloodLoss& loss : losses)
+        {
+            EXPECT_EQ(loss.mObject, 42u);
+            EXPECT_GT(loss.mVolume, 0.f);
+        }
+        EXPECT_TRUE(sim.takeLosses().empty());
+    }
+
     TEST(MWPhysicsBloodSimTest, dropsThatNeverLandAreDroppedInTime)
     {
         BloodSim sim;

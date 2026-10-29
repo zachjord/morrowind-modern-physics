@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <utility>
 
 #include <osg/BlendFunc>
 #include <osg/Geometry>
@@ -80,6 +81,41 @@ namespace MWRender
             geometry->setCullingActive(false); // its bounds change all the time
             return geometry;
         }
+    }
+
+    osg::ref_ptr<osg::Geometry> makeBloodMark(const osg::Vec3f& center, const osg::Vec3f& normal, float radius)
+    {
+        osg::Vec3f u;
+        osg::Vec3f v;
+        tangents(normal, u, v);
+        osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array;
+        osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
+        osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array;
+        const osg::Vec4f edge(sStainColor.r(), sStainColor.g(), sStainColor.b(), 0.f);
+        const osg::Vec3f middle = center + normal * 0.2f;
+        constexpr int segments = 8;
+        for (int i = 0; i < segments; ++i)
+        {
+            const auto rim = [&](int segment) {
+                const float angle = 2.f * osg::PIf * static_cast<float>(segment) / segments;
+                const float jag = 0.75f + 0.45f * edgeNoise(center, segment);
+                return middle + (u * std::cos(angle) + v * std::sin(angle)) * (radius * jag);
+            };
+            for (const auto& [vertex, color] :
+                { std::pair(middle, sStainColor), std::pair(rim(i), edge), std::pair(rim((i + 1) % segments), edge) })
+            {
+                vertices->push_back(vertex);
+                normals->push_back(normal);
+                colors->push_back(color);
+            }
+        }
+        osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+        geometry->setVertexArray(vertices);
+        geometry->setNormalArray(normals, osg::Array::BIND_PER_VERTEX);
+        geometry->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
+        geometry->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, segments * 3));
+        geometry->setStateSet(makeStateSet(true));
+        return geometry;
     }
 
     BloodRenderer::BloodRenderer(osg::ref_ptr<osg::Group> parent, Resource::ResourceSystem* resourceSystem)

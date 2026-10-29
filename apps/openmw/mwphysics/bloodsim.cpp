@@ -138,7 +138,14 @@ namespace MWPhysics
                 continue;
             }
             if (hit->mMoving)
-                continue; // On someone or something moving: a mark in the world wouldn't go along.
+            {
+                // On someone or something moving: a mark in the world wouldn't go along. Its owner may put it on.
+                constexpr std::size_t maxLosses = 256;
+                if (hit->mObject != 0 && mLosses.size() < maxLosses)
+                    mLosses.push_back(
+                        BloodLoss{ hit->mPosition, normalized(hit->mNormal), drop.mVolume, hit->mObject });
+                continue;
+            }
             const osg::Vec3f normal = normalized(hit->mNormal);
             const float into = drop.mVelocity * normal; // negative, towards the surface
             if (drop.mChunk && drop.mBounces < mSettings.mMaxChunkBounces && into < -80.f)
@@ -304,6 +311,7 @@ namespace MWPhysics
 
     void BloodSim::clear()
     {
+        mLosses.clear();
         mDrops.clear();
         mRunners.clear();
         mStains.clear();

@@ -469,6 +469,9 @@ namespace MWRender
         /// stay where they're put (see stopAllAnimations).
         std::optional<osg::Matrixf> getBoneWorldMatrix(std::string_view bone) const;
         void setBoneWorldMatrix(std::string_view bone, const osg::Matrixf& world);
+        /// Gore: a mark of blood where it landed on the body (world space), on the nearest bone, so it goes along
+        /// with it. Not saved; the oldest go first.
+        void addBloodMark(const osg::Vec3f& position, const osg::Vec3f& normal, float radius);
         /// Stop every animation, leaving the bones as they are.
         void stopAllAnimations();
 
@@ -563,6 +566,8 @@ namespace MWRender
     private:
         Animation(const Animation&);
         void operator=(Animation&);
+
+        std::deque<osg::ref_ptr<osg::Node>> mBloodMarks; // oldest first
     };
 
     class ObjectAnimation : public Animation
