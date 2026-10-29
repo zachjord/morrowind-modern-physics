@@ -41,6 +41,8 @@ git config --global --add safe.directory /src
 REVISION="$(git -C /src rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 log "Configuring ($BUILD_TYPE, revision $REVISION)"
+# Bullet: OpenMW needs it in double precision, and Arch's is single, so OpenMW builds its own (downloaded at the
+# first configure, linked in statically). Its CMake files are old enough that CMake 4 needs telling to accept them.
 # shellcheck disable=SC2086 # EXTRA_CMAKE_ARGS is meant to split into arguments
 cmake -S /src -B "$BUILD_DIR" -G Ninja \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
@@ -48,6 +50,8 @@ cmake -S /src -B "$BUILD_DIR" -G Ninja \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_LINKER_TYPE=MOLD \
     -DOPENMW_USE_SYSTEM_RECASTNAVIGATION=ON \
+    -DOPENMW_USE_SYSTEM_BULLET=OFF -DBULLET_STATIC=ON \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -DOPENMW_USE_SYSTEM_GOOGLETEST=ON \
     -DBUILD_LAUNCHER="$BUILD_LAUNCHER" \
     -DBUILD_WIZARD="$BUILD_LAUNCHER" \

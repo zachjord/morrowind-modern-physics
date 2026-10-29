@@ -3,11 +3,11 @@
 FROM archlinux:latest
 
 # Toolchain and speed-ups: ninja, ccache (compiler cache, kept in a volume), mold (a much faster linker).
-# Libraries: what OpenMW needs from the system (OSG, Bullet, MyGUI, recastnavigation...), Qt 6 for the launcher and
-# installation wizard, gtest for the unit tests.
+# Libraries: what OpenMW needs from the system (OSG, MyGUI, recastnavigation...), Qt 6 for the launcher and
+# installation wizard, gtest for the unit tests. Not Bullet: Arch's is single precision, OpenMW builds its own.
 RUN pacman -Syu --noconfirm --needed \
         base-devel git cmake ninja ccache mold \
-        openscenegraph bullet mygui recastnavigation \
+        openscenegraph mygui recastnavigation \
         sdl2-compat openal ffmpeg boost boost-libs luajit yaml-cpp sqlite icu lz4 unshield tinyxml \
         qt6-base qt6-tools qt6-svg \
         gtest \
