@@ -478,12 +478,17 @@ namespace MWPhysics
         // Twisting around the child part's own length.
         btRigidBody& parent = *mParts[parentIndex]->mBody;
         btRigidBody& child = *mParts[childIndex]->mBody;
-        const btTransform& childWorld = child.getWorldTransform();
+        // The bodies are already in the world, which the physics thread may be stepping: where they are is read
+        // from their motion states (locked), not the bodies.
+        btTransform parentWorld;
+        mParts[parentIndex]->mMotionState->getWorldTransform(parentWorld);
+        btTransform childWorld;
+        mParts[childIndex]->mMotionState->getWorldTransform(childWorld);
         btVector3 childAxis = childWorld.getBasis() * btVector3(0, 1, 0);
         const btTransform jointWorld(
             shortestArcQuat(btVector3(1, 0, 0), childAxis), Misc::Convert::toBullet(position));
         auto joint = std::make_unique<btConeTwistConstraint>(
-            parent, child, parent.getWorldTransform().inverse() * jointWorld, childWorld.inverse() * jointWorld);
+            parent, child, parentWorld.inverse() * jointWorld, childWorld.inverse() * jointWorld);
         // Firm limits (little give, quickly corrected), so joints don't stretch.
         joint->setLimit(btRadians(swing1), btRadians(swing2), btRadians(twist), 0.9f, 0.6f, 1.f);
         mTaskScheduler->addConstraint(joint.get());
