@@ -3,6 +3,8 @@
 #   docker compose run --rm build         # clone the physics branch from GitHub, build, test -> ./out
 #   docker compose run --rm build-local   # build this checkout as it is (uncommitted changes too) -> ./out
 #
+# ("docker compose up" runs only the first, in the background: follow it with "docker compose logs -f build".)
+#
 # The compiler cache and build trees live in named volumes, so later builds only recompile what changed.
 
 x-build: &build
@@ -34,8 +36,10 @@ services:
       - build-clone:/build
       - ./out:/out
 
+  # Only when asked for by name (so "docker compose up" doesn't run both builds at once).
   build-local:
     <<: *build
+    profiles: [local]
     environment:
       <<: *env
       SOURCE: local
