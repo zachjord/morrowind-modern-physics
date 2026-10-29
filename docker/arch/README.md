@@ -11,7 +11,8 @@ From the repository root:
 # The physics branch from GitHub: clones it (or updates the clone), builds, runs the unit tests.
 docker compose run --rm build
 
-# This checkout as it is, including uncommitted changes (mounted read-only).
+# This checkout as it is, including uncommitted changes. (The build may rewrite files/lang/*.ts, as any
+# OpenMW build does.)
 docker compose run --rm build-local
 ```
 

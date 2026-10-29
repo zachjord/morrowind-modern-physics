@@ -45,7 +45,8 @@ services:
       SOURCE: local
     volumes:
       - ccache:/ccache
-      - .:/src:ro
+      # Not read-only: the build refreshes the launcher's translation files (files/lang/*.ts) in place.
+      - .:/src
       - build-local:/build
       - ./out:/out
 
