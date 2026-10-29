@@ -22,6 +22,8 @@ namespace Settings
         SettingValue<bool> mImpactSoundDebug{ mIndex, "Modern Physics", "impact sound debug" };
         // Body parts destroyed for good (see apps/openmw/mwmechanics/gore.hpp).
         SettingValue<bool> mGore{ mIndex, "Modern Physics", "gore" };
+        // The player knows the Burst Head spell.
+        SettingValue<bool> mGoreSpell{ mIndex, "Modern Physics", "gore spell" };
         // How many droplets a burst throws (0: none simulated, only Morrowind's splash effect).
         SettingValue<int> mGoreBloodDroplets{ mIndex, "Modern Physics", "gore blood droplets",
             makeClampSanitizerInt(0, 600) };

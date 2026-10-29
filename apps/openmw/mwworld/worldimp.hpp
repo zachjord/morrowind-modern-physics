@@ -115,6 +115,7 @@ namespace MWWorld
         std::unique_ptr<ProjectileManager> mProjectileManager;
         std::unique_ptr<MWPhysics::BloodSim> mBloodSim; // gore
         ESM::RefId mBloodWorldspace; // where the blood is (it goes when the player leaves)
+        bool mGoreSpellsTaught = false; // this game (see MWMechanics::teachGoreSpells)
 
         bool mSky;
         bool mGodMode;

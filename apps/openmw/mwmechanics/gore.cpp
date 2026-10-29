@@ -8,7 +8,9 @@
 #include <osg/Vec3f>
 
 #include <components/debug/debuglog.hpp>
+#include <components/esm3/loadmgef.hpp>
 #include <components/esm3/loadnpc.hpp>
+#include <components/esm3/loadspel.hpp>
 #include <components/fallback/fallback.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/rng.hpp>
@@ -21,10 +23,12 @@
 #include "../mwrender/animation.hpp"
 
 #include "../mwworld/class.hpp"
+#include "../mwworld/esmstore.hpp"
 #include "../mwworld/ptr.hpp"
 
 #include "actorutil.hpp"
 #include "creaturestats.hpp"
+#include "spells.hpp"
 
 namespace MWMechanics
 {
@@ -89,9 +93,58 @@ namespace MWMechanics
         }
     }
 
+    const ESM::RefId sBurstHeadEffect = ESM::RefId::stringRefId("BurstHead");
+    const ESM::RefId sBurstHeadSpell = ESM::RefId::stringRefId("gore_burst_head");
+
     bool goreEnabled()
     {
         return Settings::modernPhysics().mGore;
+    }
+
+    void addGoreRecords(MWWorld::ESMStore& store)
+    {
+        const ESM::MagicEffect* damageHealth = store.get<ESM::MagicEffect>().search(ESM::MagicEffect::DamageHealth);
+        if (damageHealth == nullptr || store.get<ESM::MagicEffect>().search(sBurstHeadEffect) != nullptr)
+            return;
+
+        ESM::MagicEffect effect = *damageHealth;
+        effect.mId = sBurstHeadEffect;
+        effect.mName = "Burst Head";
+        effect.mDescription = "The target's head bursts. Only people's heads.";
+        // All or nothing, once, on someone else.
+        effect.mData.mFlags = ESM::MagicEffect::Harmful | ESM::MagicEffect::NoMagnitude | ESM::MagicEffect::NoDuration
+            | ESM::MagicEffect::AppliedOnce | ESM::MagicEffect::CastTouch | ESM::MagicEffect::CastTarget;
+        effect.mData.mBaseCost = 50.f;
+        store.insertStatic(effect);
+
+        ESM::Spell spell;
+        spell.blank();
+        spell.mId = sBurstHeadSpell;
+        spell.mName = "Burst Head";
+        spell.mData.mType = ESM::Spell::ST_Spell;
+        spell.mData.mCost = 25;
+        spell.mData.mFlags = 0; // nobody else gets it from autocalc
+        ESM::IndexedENAMstruct burst;
+        burst.mData.mEffectID = sBurstHeadEffect;
+        burst.mData.mRange = ESM::RT_Target;
+        burst.mData.mArea = 0;
+        burst.mData.mDuration = 0;
+        burst.mData.mMagnMin = 0;
+        burst.mData.mMagnMax = 0;
+        burst.mIndex = 0;
+        spell.mEffects.mList.push_back(burst);
+        store.insertStatic(spell);
+    }
+
+    void teachGoreSpells(const MWWorld::Ptr& player)
+    {
+        if (!goreEnabled() || !Settings::modernPhysics().mGoreSpell || player.isEmpty())
+            return;
+        if (MWBase::Environment::get().getESMStore()->get<ESM::Spell>().search(sBurstHeadSpell) == nullptr)
+            return;
+        Spells& spells = player.getClass().getCreatureStats(player).getSpells();
+        if (!spells.hasSpell(sBurstHeadSpell))
+            spells.add(sBurstHeadSpell);
     }
 
     bool explodeHead(const MWWorld::Ptr& actor)

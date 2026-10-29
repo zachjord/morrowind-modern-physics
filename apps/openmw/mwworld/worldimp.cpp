@@ -70,6 +70,7 @@
 #include "../mwmechanics/combat.hpp"
 #include "../mwmechanics/stuckprojectiles.hpp"
 #include "../mwmechanics/creaturestats.hpp"
+#include "../mwmechanics/gore.hpp"
 #include "../mwmechanics/levelledlist.hpp"
 #include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/spellcasting.hpp"
@@ -239,6 +240,7 @@ namespace MWWorld
 
         fillGlobalVariables();
 
+        MWMechanics::addGoreRecords(mStore);
         mStore.setUp();
         mStore.validateRecords(mReaders);
         mStore.movePlayerRecord();
@@ -377,6 +379,7 @@ namespace MWWorld
         mProjectileManager->clear();
         mBloodSim->clear();
         mRendering->updateBlood(*mBloodSim);
+        mGoreSpellsTaught = false;
         mLocalScripts.clear();
 
         mWorldScene->clear();
@@ -1959,6 +1962,12 @@ namespace MWWorld
         mRendering->update(duration, paused);
 
         updateBlood(duration, paused);
+
+        if (!mGoreSpellsTaught)
+        {
+            mGoreSpellsTaught = true;
+            MWMechanics::teachGoreSpells(getPlayerPtr());
+        }
 
         updateSoundListener();
 

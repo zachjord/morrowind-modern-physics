@@ -20,6 +20,8 @@ file(GLOB UNITTEST_SRC_FILES
 
     mwlua/testobjectcache.cpp
 
+    mwmechanics/testgore.cpp
+
     mwphysics/testbloodsim.cpp
     mwphysics/testragdoll.cpp
 

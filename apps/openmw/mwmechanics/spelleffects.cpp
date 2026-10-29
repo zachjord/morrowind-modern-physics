@@ -19,6 +19,7 @@
 
 #include "../mwmechanics/actorutil.hpp"
 #include "../mwmechanics/aifollow.hpp"
+#include "../mwmechanics/gore.hpp"
 #include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/spellresistance.hpp"
 #include "../mwmechanics/spellutil.hpp"
@@ -709,6 +710,13 @@ namespace MWMechanics
                             receivedMagicDamage = affectedHealth = true;
                     }
                 }
+            }
+            else if (effect.mEffectId == sBurstHeadEffect)
+            {
+                // Gore: all or nothing. On someone it can't do (a creature, a head already gone), nothing.
+                if (godmode || !explodeHead(target))
+                    return ESM::ActiveEffect::Flag_Invalid;
+                receivedMagicDamage = affectedHealth = true;
             }
             else if (effect.mEffectId == ESM::MagicEffect::DamageAttribute)
             {

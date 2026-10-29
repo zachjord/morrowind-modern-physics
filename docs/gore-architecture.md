@@ -62,8 +62,14 @@ One fact, many readers:
   the same path, so it is headless too.
 - **Events:** `MWMechanics::explodeHead` (`mwmechanics/gore.{hpp,cpp}`) sets the state, updates the model, spawns
   the blood, and kills (health to 0, no kick). A body already dead gets its ragdoll rebuilt from its current pose.
-- **Triggers:** console `ExplodeHead` (selected reference), Lua `world._explodeHead(actor)` /
-  `world._hasLostHead(actor)` for scripted tests. A magic effect is the next step (see 4).
+- **Triggers:** the spell **Burst Head** (Destruction, on target, 25 magicka), which the player is taught when a
+  game starts or loads (setting `gore spell`); console `ExplodeHead` (selected reference); Lua
+  `world._explodeHead(actor)` / `world._hasLostHead(actor)` for scripted tests. The spell's effect, `BurstHead`, and
+  the spell (`gore_burst_head`) are engine records added before the store is set up (`addGoreRecords`), copying
+  Damage Health's look; they are in no content file and not saved (the player's spell list keeps the id, and the
+  record is there again at the next start). It goes through the normal spell path, so it can be resisted or
+  reflected, is a crime on the innocent, and makes the target hostile; on a creature, or a head already gone, it
+  has no effect.
 - **Setting:** `[Modern Physics] gore` (default on).
 
 This keeps the stock death and ragdoll paths unchanged for anyone who never loses a head: the only change on that
@@ -82,8 +88,8 @@ path is an empty `lostBones` list.
   a blood decal (Stage 3).
 - **Save compatibility**: saves with a headless body carry a `LOST` subrecord that builds without this feature
   don't expect. Saves without one are unchanged.
-- **No crime/attacker**: the dev command kills with no attacker (like `SetHealth 0`). The spell version must go
-  through the normal damage path so murder, bounty and AI reactions work.
+- **No crime/attacker** for the console command (like `SetHealth 0`). The spell goes the normal way; whether the
+  kill is counted as murder still needs checking in game.
 - **Corpse still playing its death animation** (ragdoll failed): its head goes, its pose stays.
 
 ## 4. The blood simulation (first layer)
@@ -119,7 +125,6 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
 1. Stains on bodies and items in their own space, so a body that is moved carries them.
 2. Water: blood that enters water spreads as a cloud instead.
 3. Wound cap at `Bip01 Neck`.
-4. A magic effect ("Burst Head" or on-target damage with a gore flag) castable as a spell.
 5. Saving marks (capped per cell).
 6. Local shallow-water grids for pools (section 6), replacing "merge into a bigger disc".
 
@@ -161,12 +166,12 @@ without warnings (GCC 13, Ubuntu 24.04). The blood simulation, the renderer and 
 
 Unit tests to run after building (`openmw` and both test targets, `-DBUILD_OPENMW_TESTS=ON -DBUILD_COMPONENTS_TESTS=ON`):
 
-    openmw-tests --gtest_filter='MWPhysicsBloodSimTest.*:MWPhysicsRagdollTest.*:*explode_head*'
+    openmw-tests --gtest_filter='MWPhysicsBloodSimTest.*:MWPhysicsRagdollTest.*:MWMechanicsGoreTest.*:*explode_head*'
     components-tests --gtest_filter='*LostBodyParts*'
 
 In game:
 
-1. Open the console, click an NPC, type `ExplodeHead`. Expect: head, hair and any helmet vanish, a crunch, a mist
+1. Cast Burst Head at an NPC (or open the console, click an NPC, type `ExplodeHead`). Expect: head, hair and any helmet vanish, a crunch, a mist
    of blood, droplets and bits flying out and landing on the floor and nearby walls, and the body dropping limp
    straight down (no push), settling without jitter. Next to a wall: marks that run down it and pool at its foot.
    Check the marks in a dark interior and outdoors at night (lighting is the least certain part).
@@ -178,3 +183,5 @@ In game:
 6. Run it 50+ times in one place (e.g. a scripted loop) and watch `openmw.log` and memory for leaks or crashes.
 7. Leave the worldspace (go through a door) and come back: the blood is gone (expected for now).
 8. Frame rate with `gore blood droplets = 600` and several bursts at once.
+9. Burst Head on a guard or other innocent: a bounty for assault/murder? On a creature: no effect. Its tooltip
+   and the spell list show "Burst Head" with the Damage Health icon.
