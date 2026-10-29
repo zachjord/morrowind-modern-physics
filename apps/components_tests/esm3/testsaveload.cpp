@@ -409,7 +409,7 @@ namespace ESM
         {
             CreatureStats record;
             record.blank();
-            record.mDead = true;
+            // (Not dead: the flags are written in the current format, which the oldest formats read differently.)
             record.mLostBodyParts = 1;
             record.mRagdoll.push_back({ "Bip01 Pelvis", { 1, 2, 3, 0, 0, 0, 1, 1 } });
             CreatureStats result;
