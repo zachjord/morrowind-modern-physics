@@ -827,10 +827,12 @@ namespace MWRender
                     const unsigned int b = ring * segments + j;
                     const unsigned int c = (ring + 1) * segments + i;
                     const unsigned int d = (ring + 1) * segments + j;
-                    triangles->insert(triangles->end(), { a, b, d, a, d, c });
+                    for (const unsigned int index : { a, b, d, a, d, c })
+                        triangles->push_back(index);
                 }
             for (unsigned int i = 0; i < segments; ++i)
-                triangles->insert(triangles->end(), { 2 * segments + i, 2 * segments + (i + 1) % segments, middle });
+                for (const unsigned int index : { 2 * segments + i, 2 * segments + (i + 1) % segments, middle })
+                    triangles->push_back(index);
 
             osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
             geometry->setVertexArray(vertices);
