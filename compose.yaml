@@ -1,0 +1,52 @@
+# Builds this fork for Linux in a container (Arch Linux, like the desktop it runs on). See docker/arch/README.md.
+#
+#   docker compose run --rm build         # clone the physics branch from GitHub, build, test -> ./out
+#   docker compose run --rm build-local   # build this checkout as it is (uncommitted changes too) -> ./out
+#
+# The compiler cache and build trees live in named volumes, so later builds only recompile what changed.
+
+x-build: &build
+  build:
+    context: docker/arch
+  image: morrowind-modern-physics-build:arch
+  environment: &env
+    BRANCH: ${BRANCH:-physics}
+    REPO_URL: ${REPO_URL:-https://github.com/zachjord/morrowind-modern-physics.git}
+    BUILD_TYPE: ${BUILD_TYPE:-RelWithDebInfo}
+    JOBS: ${JOBS:-}
+    BUILD_TESTS: ${BUILD_TESTS:-ON}
+    RUN_TESTS: ${RUN_TESTS:-1}
+    BUILD_LAUNCHER: ${BUILD_LAUNCHER:-ON}
+    BUILD_OPENCS: ${BUILD_OPENCS:-OFF}
+    EXTRA_CMAKE_ARGS: ${EXTRA_CMAKE_ARGS:-}
+    HOST_UID: ${HOST_UID:-1000}
+    HOST_GID: ${HOST_GID:-1000}
+
+services:
+  build:
+    <<: *build
+    environment:
+      <<: *env
+      SOURCE: clone
+    volumes:
+      - ccache:/ccache
+      - source:/src
+      - build-clone:/build
+      - ./out:/out
+
+  build-local:
+    <<: *build
+    environment:
+      <<: *env
+      SOURCE: local
+    volumes:
+      - ccache:/ccache
+      - .:/src:ro
+      - build-local:/build
+      - ./out:/out
+
+volumes:
+  ccache:
+  source:
+  build-clone:
+  build-local:

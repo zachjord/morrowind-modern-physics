@@ -89,3 +89,6 @@ venv/
 ## operating system files
 .DS_Store
 Thumbs.db
+
+## docker build output (compose.yaml)
+/out/
