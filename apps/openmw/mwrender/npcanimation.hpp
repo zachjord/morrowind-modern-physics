@@ -90,6 +90,9 @@ namespace MWRender
         void removeIndividualPart(ESM::PartReferenceType type);
         /// Whether the part goes where the NPC has lost its body (a destroyed head takes the hair and any helmet).
         bool isOnLostBodyPart(ESM::PartReferenceType type) const;
+        /// The wound where the head was: shown while the head is lost, on the neck bone.
+        void updateStumpCap();
+        osg::ref_ptr<osg::Node> mStumpCap;
         void reserveIndividualPart(ESM::PartReferenceType type, int group, int priority);
 
         bool addOrReplaceIndividualPart(ESM::PartReferenceType type, int group, int priority,

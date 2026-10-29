@@ -1,6 +1,10 @@
 #include "npcanimation.hpp"
 
+#include <cmath>
+#include <optional>
+
 #include <osg/Depth>
+#include <osg/Geometry>
 #include <osg/MatrixTransform>
 
 #include <osgUtil/CullVisitor>
@@ -20,6 +24,7 @@
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/keyframe.hpp>
 #include <components/sceneutil/lightcommon.hpp>
+#include <components/sceneutil/material.hpp>
 #include <components/sceneutil/textkeymap.hpp>
 #include <components/sceneutil/userdata.hpp>
 #include <components/sceneutil/visitor.hpp>
@@ -692,6 +697,8 @@ namespace MWRender
 
         if (wasArrowAttached)
             attachArrow();
+
+        updateStumpCap();
     }
 
     PartHolderPtr NpcAnimation::insertBoundedPart(VFS::Path::NormalizedView model, std::string_view bonename,
@@ -771,6 +778,103 @@ namespace MWRender
         if (type != ESM::PRT_Head && type != ESM::PRT_Hair)
             return false;
         return mPtr.getClass().getCreatureStats(mPtr).hasLostBodyPart(MWMechanics::CreatureStats::LostBodyPart_Head);
+    }
+
+    namespace
+    {
+        // A wound, as a low dome over the end of the neck: tip at top (in the neck bone's space), axis out of it.
+        osg::ref_ptr<osg::Geometry> makeStumpCap(const osg::Vec3f& top, const osg::Vec3f& axis, float radius)
+        {
+            osg::Vec3f u = (std::abs(axis.z()) < 0.9f ? osg::Vec3f(0, 0, 1) : osg::Vec3f(1, 0, 0)) ^ axis;
+            u.normalize();
+            const osg::Vec3f v = axis ^ u;
+            constexpr int segments = 14;
+            // Rings from the rim (a little down the neck, where the skin ends) to the middle.
+            constexpr float ringRadius[] = { 1.f, 0.75f, 0.4f };
+            constexpr float ringHeight[] = { -0.25f, 0.f, 0.15f };
+            const osg::Vec4f ringColor[]
+                = { { 0.42f, 0.08f, 0.07f, 1.f }, { 0.3f, 0.03f, 0.03f, 1.f }, { 0.2f, 0.02f, 0.02f, 1.f } };
+            const osg::Vec4f middleColor(0.16f, 0.01f, 0.01f, 1.f);
+
+            osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array;
+            osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
+            osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array;
+            for (int ring = 0; ring < 3; ++ring)
+                for (int i = 0; i < segments; ++i)
+                {
+                    const float angle = 2.f * osg::PIf * static_cast<float>(i) / segments;
+                    // A little uneven: torn, not cut.
+                    const float jag = 1.f + 0.12f * std::sin(angle * 5.f + static_cast<float>(ring) * 1.7f);
+                    const osg::Vec3f out
+                        = (u * std::cos(angle) + v * std::sin(angle)) * (radius * ringRadius[ring] * jag);
+                    vertices->push_back(top + out + axis * (radius * ringHeight[ring]));
+                    osg::Vec3f normal = axis + out * (0.6f / radius);
+                    normal.normalize();
+                    normals->push_back(normal);
+                    colors->push_back(ringColor[ring]);
+                }
+            const unsigned int middle = static_cast<unsigned int>(vertices->size());
+            vertices->push_back(top + axis * (radius * 0.3f));
+            normals->push_back(axis);
+            colors->push_back(middleColor);
+
+            osg::ref_ptr<osg::DrawElementsUInt> triangles = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES);
+            for (unsigned int ring = 0; ring < 2; ++ring)
+                for (unsigned int i = 0; i < segments; ++i)
+                {
+                    const unsigned int j = (i + 1) % segments;
+                    const unsigned int a = ring * segments + i;
+                    const unsigned int b = ring * segments + j;
+                    const unsigned int c = (ring + 1) * segments + i;
+                    const unsigned int d = (ring + 1) * segments + j;
+                    triangles->insert(triangles->end(), { a, b, d, a, d, c });
+                }
+            for (unsigned int i = 0; i < segments; ++i)
+                triangles->insert(triangles->end(), { 2 * segments + i, 2 * segments + (i + 1) % segments, middle });
+
+            osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+            geometry->setVertexArray(vertices);
+            geometry->setNormalArray(normals, osg::Array::BIND_PER_VERTEX);
+            geometry->setColorArray(colors, osg::Array::BIND_PER_VERTEX);
+            geometry->addPrimitiveSet(triangles);
+            geometry->getOrCreateStateSet()->setAttribute(
+                new SceneUtil::Material({ .mSpecular = { 0.35f, 0.35f, 0.35f, 1.f },
+                    .mShininess = 50.f, // wet
+                    .mVertexColorMode = SceneUtil::VertexColorModes::AmbientAndDiffuse }));
+            return geometry;
+        }
+    }
+
+    void NpcAnimation::updateStumpCap()
+    {
+        const bool lost = mViewMode == VM_Normal && isOnLostBodyPart(ESM::PRT_Head);
+        const NodeMap& nodes = getNodeMap();
+        const auto neck = nodes.find(std::string("Bip01 Neck"));
+        osg::Group* neckNode = neck != nodes.end() ? neck->second.get() : nullptr;
+
+        // Gone when the head is back, or the skeleton was made again (a new neck).
+        if (mStumpCap && (!lost || !neckNode || !neckNode->containsNode(mStumpCap)))
+        {
+            const osg::Node::ParentList parents = mStumpCap->getParents(); // a copy: removing changes it
+            for (osg::Group* parent : parents)
+                parent->removeChild(mStumpCap);
+            mStumpCap = nullptr;
+        }
+        if (!lost || mStumpCap || neckNode == nullptr)
+            return;
+        const std::optional<osg::Matrixf> neckWorld = getBoneWorldMatrix("Bip01 Neck");
+        const std::optional<osg::Matrixf> headWorld = getBoneWorldMatrix("Bip01 Head");
+        if (!neckWorld || !headWorld)
+            return;
+        // Where the head joined the neck, in the neck's own space (so it goes wherever the neck does).
+        const osg::Vec3f top = headWorld->getTrans() * osg::Matrixf::inverse(*neckWorld);
+        osg::Vec3f axis = top;
+        if (axis.normalize() < 1e-3f)
+            axis = osg::Vec3f(1, 0, 0); // Bip01 bones run along x
+        constexpr float neckRadius = 4.f; // a person's neck, in the skeleton's units
+        mStumpCap = makeStumpCap(top, axis, neckRadius);
+        mResourceSystem->getSceneManager()->recreateShaders(mStumpCap);
+        neckNode->addChild(mStumpCap);
     }
 
     void NpcAnimation::updateLostBodyParts()

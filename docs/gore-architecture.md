@@ -84,8 +84,9 @@ path is an empty `lostBones` list.
   general fix (and the basis for limbs) is per-bone triangle removal in `SceneUtil::RigGeometry`: drop triangles
   whose dominant bone is lost, and cap the cut. Not done yet.
 - **Creatures**: no part system; the same RigGeometry approach is needed. `explodeHead` refuses non-NPCs.
-- **The stump** shows the top of the neck part (open or capped, depending on the mesh). Needs a wound cap mesh and
-  a blood decal (Stage 3).
+- **The stump** is covered by a wound cap: a small, slightly ragged wet dome, made in code and attached to
+  `Bip01 Neck` where the head joined it (`NpcAnimation::updateStumpCap`), so it moves with the ragdoll and is
+  remade with the skeleton. Its size is fixed (a person's neck); unusually thick or thin necks may show an edge.
 - **Save compatibility**: saves with a headless body carry a `LOST` subrecord that builds without this feature
   don't expect. Saves without one are unchanged.
 - **No crime/attacker** for the console command (like `SetHealth 0`). The spell goes the normal way; whether the
@@ -124,7 +125,6 @@ frame with `PhysicsSystem::castRay` and hands it to `MWRender::BloodRenderer` to
 
 1. Stains on bodies and items in their own space, so a body that is moved carries them.
 2. Water: blood that enters water spreads as a cloud instead.
-3. Wound cap at `Bip01 Neck`.
 5. Saving marks (capped per cell).
 6. Local shallow-water grids for pools (section 6), replacing "merge into a bigger disc".
 
@@ -174,7 +174,8 @@ In game:
 1. Cast Burst Head at an NPC (or open the console, click an NPC, type `ExplodeHead`). Expect: head, hair and any helmet vanish, a crunch, a mist
    of blood, droplets and bits flying out and landing on the floor and nearby walls, and the body dropping limp
    straight down (no push), settling without jitter. Next to a wall: marks that run down it and pool at its foot.
-   Check the marks in a dark interior and outdoors at night (lighting is the least certain part).
+   Check the marks in a dark interior and outdoors at night (lighting is the least certain part). The neck ends
+   in a dark red wound, not an open hole, and it stays on the neck as the body falls and is dragged.
 2. Repeat on several NPCs, including one already lying dead (it should lose its head where it lies) and one
    being dragged (it should drop and be grabbable again).
 3. Save, reload: headless bodies stay headless and lie where they were.
